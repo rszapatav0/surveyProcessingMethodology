@@ -1,0 +1,26 @@
+variable_name,label_english,label_spanish,topic,question_type,choices,required,constraint,constraint_message,questionnaire_include,odk_calculate_expr,odk_calculate_output,odk_calculate_include,quality_include,quality_min,quality_max,quality_outlier_sd,quality_report,descriptive_include,descriptive_chart,descriptive_group_by,model_role,model_notes
+respondent_id,Respondent ID,ID del encuestado,household,text,,1,,,,0,,,0.0,0.0,,,0,0.0,,,0.0,
+respondent_age,Age of respondent,Edad del encuestado,household,integer,,1,. >= 18 and . <= 100,Age must be between 18 and 100,1.0,,respondent_age,0.0,1.0,18.0,100.0,3.0,1,1.0,histogram,,3.0,Control variable
+respondent_sex,Sex of respondent,Sexo del encuestado,household,select_one,"male:Hombre,female:Mujer,other:Otro",1,,,1.0,,respondent_sex,0.0,0.0,,,0.0,1,1.0,bar,,3.0,Control variable
+household_size,Number of people in household,NÃºmero de personas en el hogar,household,integer,,1,. >= 1 and . <= 20,Household size must be between 1 and 20,1.0,,household_size,0.0,1.0,1.0,20.0,3.0,1,1.0,bar,,3.0,Control variable
+years_farming,Years of farming experience,AÃ±os de experiencia en agricultura,household,integer,,1,. >= 0 and . <= 70,Years of farming must be between 0 and 70,1.0,,years_farming,0.0,1.0,0.0,70.0,3.0,1,1.0,histogram,,3.0,Control variable
+education_level,Highest level of education,Nivel mÃ¡ximo de educaciÃ³n,household,select_one,"none:Ninguno,primary:Primaria,secondary:Secundaria,technical:TÃ©cnico,university:Universidad",1,,,1.0,,education_level,0.0,0.0,,,0.0,1,1.0,bar,,3.0,Control variable
+,Number of farms owned or managed,,farm,,,1,. >= 1 and . <= 10,Farm count must be between 1 and 10,,,farm_count,,,1.0,10.0,2.0,1,,bar,,,Control variable
+,Area planted in coffee (in local units),,farm,,,1,. > 0,Area must be greater than 0,,"if(${area_unit}='ha', ${area_planted_coffee_raw}, if(${area_unit}='manzana', ${area_planted_coffee_raw}*0.7, if(${area_unit}='vara', ${area_planted_coffee_raw}*0.000070, ${area_planted_coffee_raw}*0.0001)))",area_planted_coffee_ha,,,0.0,50.0,3.0,1,,histogram,,,Independent variable
+,Unit used for area measurement,,farm,,"ha:HectÃ¡reas,manzana:Manzanas,vara:Varas cuadradas,tarea:Tareas",1,,,,,area_unit,,,,,0.0,0,,,0.0,,
+,Total farm area (in local units),,farm,,,1,. > 0,Area must be greater than 0,,"if(${area_unit}='ha', ${area_total_farm_raw}, if(${area_unit}='manzana', ${area_total_farm_raw}*0.7, if(${area_unit}='vara', ${area_total_farm_raw}*0.000070, ${area_total_farm_raw}*0.0001)))",area_total_farm_ha,,,0.0,200.0,3.0,1,,histogram,,,Control variable
+,Main coffee variety grown,,production,,"catuai:CatuaÃ­,caturra:Caturra,bourbon:Bourbon,geisha:Geisha,lempira:Lempira,ihcafe90:IHCAFE 90,pacas:Pacas,other:Otra",1,,,,,coffee_variety,,,,,0.0,1,,bar,,,Control variable
+,Coffee yield last harvest (local units),,production,,,1,. >= 0,Yield cannot be negative,,"if(${yield_unit}='qq', ${coffee_yield_raw}*46, if(${yield_unit}='kg', ${coffee_yield_raw}, ${coffee_yield_raw}*1000))",coffee_yield_kg,,,0.0,10000.0,3.0,1,,histogram,,,Dependent variable
+,Unit for yield measurement,,production,,"qq:Quintales,kg:Kilogramos,ton:Toneladas",1,,,,,yield_unit,,,,,0.0,0,,,0.0,,
+,Price received per quintal (USD),,market,,,1,. > 0 and . < 1000,Price must be between 0 and 1000 USD,,,coffee_price_received_usd,,,0.0,1000.0,3.0,1,,histogram,,,Independent variable
+,Sells coffee to a cooperative,,market,,"yes:SÃ­,no:No",1,,,,,sells_to_cooperative,,,,,0.0,1,,bar,,,Independent variable
+,Has access to formal credit,,finance,,"yes:SÃ­,no:No",1,,,,,has_formal_credit,,,,,0.0,1,,bar,,,Independent variable
+,Total credit amount received (USD),,finance,,,0,. >= 0,Amount cannot be negative,,,credit_amount_usd,,,0.0,50000.0,3.0,1,,histogram,,,Independent variable
+,Uses chemical fertilizer,,inputs,,"yes:SÃ­,no:No",1,,,,,uses_fertilizer,,,,,0.0,1,,bar,,,Independent variable
+,Annual fertilizer expenditure (USD),,inputs,,,0,. >= 0,Cost cannot be negative,,,fertilizer_cost_usd,,,0.0,5000.0,3.0,1,,histogram,,,Control variable
+,Uses improved/certified variety,,technology,,"yes:SÃ­,no:No",1,,,,,uses_improved_variety,,,,,0.0,1,,bar,,,Independent variable
+,Willingness to pay for certification (USD/year),,wtp,,,0,. >= 0,WTP cannot be negative,,,wtp_certification_usd,,,0.0,500.0,3.0,1,,histogram,,,Dependent variable (WTP studies)
+,GPS latitude of main plot,,geospatial,,,0,. >= -90 and . <= 90,Invalid latitude,,,gps_latitude,,,-90.0,90.0,0.0,0,,,0.0,,
+,GPS longitude of main plot,,geospatial,,,0,. >= -180 and . <= 180,Invalid longitude,,,gps_longitude,,,-180.0,180.0,0.0,0,,,0.0,,
+,Interview duration in minutes,,quality_meta,,,0,. >= 5 and . <= 180,Duration seems implausible,,,interview_duration_min,,,5.0,180.0,3.0,1,,histogram,,,
+,Enumerator ID code,,quality_meta,,,1,,,,,enumerator_id,,,,,0.0,0,,,0.0,,

@@ -1,0 +1,30 @@
+cluster_var: enumerator_id
+data_file: test_data_honduras_n200.csv
+estimator: OLS
+formula: coffee_yield_kg ~ area_planted_coffee_ha + coffee_price_received_usd + sells_to_cooperative
+  + has_formal_credit + credit_amount_usd + uses_fertilizer + uses_improved_variety
+  + respondent_age + respondent_sex + household_size + years_farming + education_level
+  + farm_count + area_total_farm_ha + coffee_variety + fertilizer_cost_usd
+generated: '2026-05-05T21:07:41.368999'
+n_obs: 194
+r2: !!python/object/apply:numpy._core.multiarray.scalar
+- &id001 !!python/object/apply:numpy.dtype
+  args:
+  - f8
+  - false
+  - true
+  state: !!python/tuple
+  - 3
+  - <
+  - null
+  - null
+  - null
+  - -1
+  - -1
+  - 0
+- !!binary |
+  /fZ14JwRzT8=
+r2_adj: !!python/object/apply:numpy._core.multiarray.scalar
+- *id001
+- !!binary |
+  bVZ9rrZivz8=

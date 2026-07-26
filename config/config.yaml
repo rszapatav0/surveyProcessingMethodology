@@ -1,0 +1,34 @@
+# AGEVAL Configuration
+# Edit these values for each new project
+
+project:
+  name: "Coffee IE Honduras 2025"
+  organization: "CIAT"
+  country: "Honduras"
+  language: "spanish"          # "spanish" or "english" — controls ODK labels
+  form_id: "ageval_coffee_hn"
+  form_version: "2025010101"
+
+paths:
+  dictionary: "dictionary/variables_master.csv"
+  forms_out: "forms/"
+  data_raw: "data_raw/"
+  data_clean: "data_clean/"
+  outputs_quality: "outputs/quality/"
+  outputs_stats: "outputs/stats/"
+  outputs_models: "outputs/models/"
+
+odk:
+  repeat_groups: true          # Enable multi-plot repeat groups
+  include_gps: true
+  default_language: "Spanish (es)"
+  secondary_language: "English (en)"
+
+quality:
+  outlier_method: "sd"         # "sd" or "iqr"
+  report_format: "html"        # "html" or "excel"
+
+model:
+  default_estimator: "OLS"     # "OLS", "FE", "IV"
+  cluster_var: "enumerator_id"
+  output_format: "both"        # "latex", "csv", or "both"

@@ -1,0 +1,570 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>AGEVAL Quality Report — round1</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 1100px; margin: 2rem auto; color: #1a1a1a; }
+  h1   { font-size: 1.5rem; font-weight: 600; border-bottom: 2px solid #2563EB; padding-bottom: .5rem; }
+  h2   { font-size: 1.1rem; font-weight: 600; margin-top: 2rem; color: #1D4ED8; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0; }
+  .card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem; text-align: center; }
+  .card .val { font-size: 2rem; font-weight: 700; }
+  .card .lbl { font-size: .75rem; color: #64748B; margin-top: .25rem; }
+  .ok   { color: #16A34A; }
+  .warn { color: #D97706; }
+  .err  { color: #DC2626; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: .75rem; }
+  th    { background: #1D4ED8; color: white; padding: .5rem .75rem; text-align: left; }
+  td    { padding: .4rem .75rem; border-bottom: 1px solid #E2E8F0; }
+  tr:nth-child(even) { background: #F8FAFC; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
+  .badge-err  { background: #FEE2E2; color: #991B1B; }
+  .badge-warn { background: #FEF3C7; color: #92400E; }
+  .badge-ok   { background: #D1FAE5; color: #065F46; }
+  footer { margin-top: 3rem; font-size: .75rem; color: #94A3B8; }
+</style>
+</head>
+<body>
+<h1>AGEVAL Quality Report</h1>
+<p>Batch: <strong>round1</strong> &nbsp;|&nbsp; Generated: 2026-05-05 21:07 &nbsp;|&nbsp; Records checked: <strong>200</strong></p>
+
+<div class="summary-grid">
+  <div class="card"><div class="val ok">200</div><div class="lbl">Total records</div></div>
+  <div class="card"><div class="val warn">6</div><div class="lbl">Warnings</div></div>
+  <div class="card"><div class="val err">1</div><div class="lbl">Errors (out of range)</div></div>
+  <div class="card"><div class="val">14</div><div class="lbl">Variables checked</div></div>
+</div>
+
+
+<h2>respondent_age <small style="font-weight:400; color:#64748B;">— Edad del encuestado</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [18.0 – 100.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=44.94, sd=11.3)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>household_size <small style="font-weight:400; color:#64748B;">— Número de personas en el hogar</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [1.0 – 20.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=5.0, sd=2.06)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>years_farming <small style="font-weight:400; color:#64748B;">— Años de experiencia en agricultura</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 70.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=17.0, sd=7.73)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>farm_count <small style="font-weight:400; color:#64748B;">— Número de fincas que posee o administra</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [1.0 – 10.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>2.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>17 outliers detected (mean=1.34, sd=0.63)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 17 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0003</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0007</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0012</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0013</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0015</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0028</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0036</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0043</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0052</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0054</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0100</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0107</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0109</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0132</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0138</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0172</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+    <tr><td>RES0179</td><td>3</td><td>Outlier (>2.0 SD from mean 1.34)</td></tr>
+    
+  </table>
+</details>
+
+
+
+<h2>area_planted_coffee_raw <small style="font-weight:400; color:#64748B;">— Área sembrada de café (en unidades locales)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 50.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>4 outliers detected (mean=1.64, sd=1.36)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 4 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0051</td><td>5.78</td><td>Outlier (>3.0 SD from mean 1.64)</td></tr>
+    
+    <tr><td>RES0055</td><td>5.86</td><td>Outlier (>3.0 SD from mean 1.64)</td></tr>
+    
+    <tr><td>RES0178</td><td>6.26</td><td>Outlier (>3.0 SD from mean 1.64)</td></tr>
+    
+    <tr><td>RES0188</td><td>10.64</td><td>Outlier (>3.0 SD from mean 1.64)</td></tr>
+    
+  </table>
+</details>
+
+
+
+<h2>area_total_farm_raw <small style="font-weight:400; color:#64748B;">— Área total de la finca (en unidades locales)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 200.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>6 outliers detected (mean=3.53, sd=3.07)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 6 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0051</td><td>17.16</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+    <tr><td>RES0055</td><td>16.46</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+    <tr><td>RES0091</td><td>14.63</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+    <tr><td>RES0160</td><td>13.69</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+    <tr><td>RES0178</td><td>17.56</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+    <tr><td>RES0188</td><td>13.98</td><td>Outlier (>3.0 SD from mean 3.53)</td></tr>
+    
+  </table>
+</details>
+
+
+
+<h2>coffee_yield_raw <small style="font-weight:400; color:#64748B;">— Rendimiento de café última cosecha (unidades locales)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>6/200 missing (3.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 10000.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=953.93, sd=316.95)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>coffee_price_received <small style="font-weight:400; color:#64748B;">— Precio recibido por quintal (USD)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 1000.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=131.29, sd=29.35)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>credit_amount_usd <small style="font-weight:400; color:#64748B;">— Monto total de crédito recibido (USD)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 50000.0]</td>
+    <td><span class="badge badge-err">ERR</span></td>
+    <td>1 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>1 outliers detected (mean=939.45, sd=7099.52)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 2 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0001</td><td>99999.0</td><td>Out of range [0.0, 50000.0]</td></tr>
+    
+    <tr><td>RES0001</td><td>99999.0</td><td>Outlier (>3.0 SD from mean 939.45)</td></tr>
+    
+  </table>
+</details>
+
+
+
+<h2>fertilizer_cost_usd <small style="font-weight:400; color:#64748B;">— Gasto anual en fertilizante (USD)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 5000.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 outliers detected (mean=325.73, sd=224.37)</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>wtp_certification <small style="font-weight:400; color:#64748B;">— Disposición a pagar por certificación (USD/año)</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [0.0 – 500.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>6 outliers detected (mean=53.3, sd=60.77)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 6 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0025</td><td>300.0</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+    <tr><td>RES0085</td><td>271.42</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+    <tr><td>RES0110</td><td>300.0</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+    <tr><td>RES0147</td><td>300.0</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+    <tr><td>RES0160</td><td>300.0</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+    <tr><td>RES0176</td><td>276.05</td><td>Outlier (>3.0 SD from mean 53.3)</td></tr>
+    
+  </table>
+</details>
+
+
+
+<h2>gps_latitude <small style="font-weight:400; color:#64748B;">— Latitud GPS del plot principal</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [-90.0 – 90.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>gps_longitude <small style="font-weight:400; color:#64748B;">— Longitud GPS del plot principal</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [-180.0 – 180.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+</table>
+
+
+
+
+<h2>interview_duration_min <small style="font-weight:400; color:#64748B;">— Duración de la entrevista en minutos</small></h2>
+<table>
+  <tr>
+    <th>Check</th><th>Status</th><th>Detail</th>
+  </tr>
+  
+  <tr>
+    <td>Missing values</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0/200 missing (0.0%)</td>
+  </tr>
+  
+  <tr>
+    <td>Range [5.0 – 180.0]</td>
+    <td><span class="badge badge-ok">OK</span></td>
+    <td>0 values out of range</td>
+  </tr>
+  
+  <tr>
+    <td>Outlier (>3.0 SD)</td>
+    <td><span class="badge badge-warn">WARN</span></td>
+    <td>1 outliers detected (mean=44.76, sd=12.01)</td>
+  </tr>
+  
+</table>
+
+
+<details>
+  <summary style="cursor:pointer; margin-top:.5rem; font-size:.8rem; color:#1D4ED8;">
+    Show 1 flagged records
+  </summary>
+  <table style="margin-top:.5rem;">
+    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    
+    <tr><td>RES0134</td><td>91</td><td>Outlier (>3.0 SD from mean 44.76)</td></tr>
+    
+  </table>
+</details>
+
+
+
+
+<footer>Generated by AGEVAL v1.0 — CIAT</footer>
+</body>
+</html>

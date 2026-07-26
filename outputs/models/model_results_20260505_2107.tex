@@ -1,0 +1,57 @@
+\begin{center}
+\begin{tabular}{lclc}
+\toprule
+\textbf{Dep. Variable:}                 & coffee\_yield\_kg & \textbf{  R-squared:         } &     0.227   \\
+\textbf{Model:}                         &        OLS        & \textbf{  Adj. R-squared:    } &     0.123   \\
+\textbf{Method:}                        &   Least Squares   & \textbf{  F-statistic:       } &     2.172   \\
+\textbf{Date:}                          &  Tue, 05 May 2026 & \textbf{  Prob (F-statistic):} &  0.00265    \\
+\textbf{Time:}                          &      21:07:41     & \textbf{  Log-Likelihood:    } &   -1367.0   \\
+\textbf{No. Observations:}              &          194      & \textbf{  AIC:               } &     2782.   \\
+\textbf{Df Residuals:}                  &          170      & \textbf{  BIC:               } &     2860.   \\
+\textbf{Df Model:}                      &           23      & \textbf{                     } &             \\
+\textbf{Covariance Type:}               &     nonrobust     & \textbf{                     } &             \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lcccccc}
+                                        & \textbf{coef} & \textbf{std err} & \textbf{t} & \textbf{P$> |$t$|$} & \textbf{[0.025} & \textbf{0.975]}  \\
+\midrule
+\textbf{Intercept}                      &     956.0931  &      195.664     &     4.886  &         0.000        &      569.849    &     1342.338     \\
+\textbf{sells\_to\_cooperative[T.yes]}  &     -56.8672  &       47.044     &    -1.209  &         0.228        &     -149.734    &       35.999     \\
+\textbf{has\_formal\_credit[T.yes]}     &      31.0524  &       48.754     &     0.637  &         0.525        &      -65.188    &      127.293     \\
+\textbf{uses\_fertilizer[T.yes]}        &      79.4532  &       87.235     &     0.911  &         0.364        &      -92.750    &      251.656     \\
+\textbf{uses\_improved\_variety[T.yes]} &     186.3736  &       45.315     &     4.113  &         0.000        &       96.921    &      275.826     \\
+\textbf{respondent\_sex[T.male]}        &      92.7981  &       50.707     &     1.830  &         0.069        &       -7.298    &      192.894     \\
+\textbf{education\_level[T.primary]}    &       6.7846  &       79.184     &     0.086  &         0.932        &     -149.526    &      163.096     \\
+\textbf{education\_level[T.secondary]}  &      87.8806  &       81.520     &     1.078  &         0.283        &      -73.041    &      248.802     \\
+\textbf{education\_level[T.technical]}  &      -9.5069  &      103.063     &    -0.092  &         0.927        &     -212.956    &      193.942     \\
+\textbf{education\_level[T.university]} &      20.7066  &      119.243     &     0.174  &         0.862        &     -214.682    &      256.095     \\
+\textbf{coffee\_variety[T.catuai]}      &     -92.2331  &       95.427     &    -0.967  &         0.335        &     -280.607    &       96.141     \\
+\textbf{coffee\_variety[T.caturra]}     &     -43.2530  &       94.124     &    -0.460  &         0.646        &     -229.055    &      142.549     \\
+\textbf{coffee\_variety[T.ihcafe90]}    &      90.7999  &      112.214     &     0.809  &         0.420        &     -130.712    &      312.312     \\
+\textbf{coffee\_variety[T.lempira]}     &     -79.1754  &      102.391     &    -0.773  &         0.440        &     -281.297    &      122.946     \\
+\textbf{coffee\_variety[T.other]}       &     -56.6176  &      131.618     &    -0.430  &         0.668        &     -316.433    &      203.198     \\
+\textbf{area\_planted\_coffee\_ha}      &      74.4538  &       41.119     &     1.811  &         0.072        &       -6.716    &      155.623     \\
+\textbf{coffee\_price\_received\_usd}   &      -0.7200  &        0.763     &    -0.943  &         0.347        &       -2.227    &        0.787     \\
+\textbf{credit\_amount\_usd}            &      -0.0015  &        0.003     &    -0.479  &         0.633        &       -0.008    &        0.005     \\
+\textbf{respondent\_age}                &       0.8579  &        1.963     &     0.437  &         0.663        &       -3.017    &        4.733     \\
+\textbf{household\_size}                &     -19.9896  &       10.842     &    -1.844  &         0.067        &      -41.392    &        1.413     \\
+\textbf{years\_farming}                 &      -4.5604  &        2.862     &    -1.593  &         0.113        &      -10.210    &        1.089     \\
+\textbf{farm\_count}                    &      23.5333  &       36.596     &     0.643  &         0.521        &      -48.707    &       95.774     \\
+\textbf{area\_total\_farm\_ha}          &     -12.3489  &       19.496     &    -0.633  &         0.527        &      -50.834    &       26.136     \\
+\textbf{fertilizer\_cost\_usd}          &      -0.1798  &        0.164     &    -1.097  &         0.274        &       -0.503    &        0.144     \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lclc}
+\textbf{Omnibus:}       &  0.413 & \textbf{  Durbin-Watson:     } &    2.007  \\
+\textbf{Prob(Omnibus):} &  0.813 & \textbf{  Jarque-Bera (JB):  } &    0.536  \\
+\textbf{Skew:}          &  0.095 & \textbf{  Prob(JB):          } &    0.765  \\
+\textbf{Kurtosis:}      &  2.826 & \textbf{  Cond. No.          } & 7.86e+04  \\
+\bottomrule
+\end{tabular}
+%\caption{OLS Regression Results}
+\end{center}
+
+Notes: \newline
+ [1] Standard Errors assume that the covariance matrix of the errors is correctly specified. \newline
+ [2] The condition number is large, 7.86e+04. This might indicate that there are \newline
+ strong multicollinearity or other numerical problems.
