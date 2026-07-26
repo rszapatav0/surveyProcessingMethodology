@@ -87,7 +87,7 @@ for topic in selected_topics:
                 "descriptive_include":    st.column_config.NumberColumn("Desc. Stats", min_value=0, max_value=1, step=1),
                 "model_role":             st.column_config.NumberColumn("Model Role (0-3)", min_value=0, max_value=3, step=1),
             },
-            use_container_width=True,
+            width="stretch",
             key=f"editor_{topic}",
             hide_index=True,
         )
@@ -97,28 +97,21 @@ for topic in selected_topics:
 
 # ── Merge and save ────────────────────────────────────────────────────────────
 st.markdown("---")
-col1, col2 = st.columns(2)
 
-if col1.button("💾 Save updated dictionary", type="primary"):
-    if edited_frames:
-        updated = pd.concat(edited_frames)
-        # Preserve rows not currently shown (other topics)
-        other = df[~df["topic"].isin(selected_topics)]
-        final = pd.concat([updated, other]).sort_index()
-        final.to_csv(DICT_PATH, index=False)
-        st.success(f"Dictionary saved to {DICT_PATH}")
-        st.cache_data.clear()
-
-if col2.button("📥 Download filtered dictionary (CSV)"):
-    if edited_frames:
-        result = pd.concat(edited_frames)
-        csv = result.to_csv(index=False)
-        st.download_button(
-            label="Click to download",
-            data=csv,
-            file_name="variables_filtered.csv",
-            mime="text/csv",
-        )
+# Save button with customized download path
+if edited_frames:
+    personalized = pd.concat(edited_frames)
+    csv = personalized.to_csv(index=False)
+    st.download_button(
+        label="💾 Download dictionary (CSV)",
+        data=csv,
+        file_name="variables_personalized.csv",
+        mime="text/csv",
+        type="primary",
+    )
+else:
+    st.warning("No variables selected — adjust filters first.")
+    
 
 # ── Variable detail inspector ─────────────────────────────────────────────────
 st.markdown("---")
