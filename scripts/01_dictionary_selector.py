@@ -1,5 +1,5 @@
 """
-AGEVAL Step 1 — Variable Dictionary Selector
+AGEVAL Step 1 - Variable Dictionary Selector
 Run: python -m streamlit run scripts/01_dictionary_selector.py
 """
 
@@ -9,9 +9,9 @@ import os
 
 DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_master.xlsx")
 
-st.set_page_config(page_title="AGEVAL — Variable Selector", layout="wide")
+st.set_page_config(page_title="AGEVAL - Variable Selector", layout="wide")
 
-st.title("AGEVAL — Variable Dictionary Selector")
+st.title("AGEVAL - Variable Dictionary Selector")
 st.caption("Select which variables to include at each pipeline stage. Save your filtered dictionary to proceed.")
 
 # ── Load ──────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ for topic in selected_topics:
                 "variable_name":          st.column_config.TextColumn("Variable", disabled=True, width="medium"),
                 "label_spanish":          st.column_config.TextColumn("Label (ES)", disabled=True, width="large"),
                 "question_type":          st.column_config.TextColumn("Type", disabled=True, width="small"),
-                "questionnaire_include":  st.column_config.NumberColumn("Questionnaire", min_value=0, max_value=1, step=1),
+                "questionnaire_include":  st.column_config.CheckboxColumn("Enabled", default=False),
                 "odk_calculate_include":  st.column_config.NumberColumn("ODK Calc", min_value=0, max_value=1, step=1),
                 "quality_include":        st.column_config.NumberColumn("Quality", min_value=0, max_value=1, step=1),
                 "descriptive_include":    st.column_config.NumberColumn("Desc. Stats", min_value=0, max_value=1, step=1),
@@ -92,6 +92,7 @@ for topic in selected_topics:
             hide_index=True,
         )
         # Merge edits back into topic_df
+        topic_df = topic_df.reset_index(drop=True)
         topic_df[display_cols] = editable
         edited_frames.append(topic_df)
 
@@ -102,7 +103,7 @@ st.markdown("---")
 if edited_frames:
     personalized = pd.concat(edited_frames)
     download_df = personalized[personalized["questionnaire_include"] == 1].copy()
-    csv = download_df.to_csv(index=False)
+    csv = download_df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
         label="💾 Download dictionary (CSV)",
         data=csv,
