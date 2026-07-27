@@ -17,7 +17,7 @@ from datetime import datetime
 BASE   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.join(BASE, "..")
 CFG    = os.path.join(ROOT, "config", "config.yaml")
-DICT   = os.path.join(ROOT, "dictionary", "variables_master.csv")
+DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
 OUTDIR = os.path.join(ROOT, "forms")
 
 def load_config():
@@ -52,7 +52,6 @@ def build_survey(df, cfg):
         "finance":       ("Finanzas y Crédito",            "Finance & Credit"),
         "inputs":        ("Insumos",                       "Inputs"),
         "technology":    ("Tecnología",                    "Technology Adoption"),
-        "wtp":           ("Disposición a Pagar",           "Willingness to Pay"),
         "geospatial":    ("Ubicación GPS",                 "GPS Location"),
     }
 
