@@ -1,6 +1,6 @@
 """
 AGEVAL Step 4 — Descriptive Statistics Generator
-Run: python scripts/04_descriptive_stats.py --data data_clean/cleaned_data.csv
+Run: python scripts/s04_descriptive_stats.py --data data_clean/cleaned_data.csv
 
 Reads cleaned data and generates charts + summary HTML for all
 variables flagged descriptive_include=1 in the dictionary.
@@ -20,7 +20,7 @@ from jinja2 import Template
 BASE   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.join(BASE, "..")
 CFG    = os.path.join(ROOT, "config", "config.yaml")
-DICT   = os.path.join(ROOT, "dictionary", "variables_master.csv")
+DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
 OUTDIR = os.path.join(ROOT, "outputs", "stats")
 
 # ── Plot style ─────────────────────────────────────────────────────────────────

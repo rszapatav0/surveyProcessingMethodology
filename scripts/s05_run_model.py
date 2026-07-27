@@ -1,6 +1,6 @@
 """
 AGEVAL Step 5 — Econometric Model Runner
-Run: python scripts/05_run_model.py --data data_clean/cleaned_data.csv
+Run: python scripts/s05_run_model.py --data data_clean/cleaned_data.csv
 
 Uses model_role flags from dictionary to build and run regression models.
   1 = dependent variable

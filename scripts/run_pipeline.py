@@ -32,7 +32,7 @@ def main():
 
     if 2 in args.steps:
         print("── Step 2: Generate ODK XLS form ───────────────")
-        from scripts.s02_generate_odk_form import generate_form
+        from s02_generate_odk_form import generate_form
         generate_form()
         print()
 
@@ -41,7 +41,7 @@ def main():
             print("⚠  --data required for Step 3. Skipping.")
         else:
             print("── Step 3: Quality check ────────────────────────")
-            from scripts.s03_quality_check import run_quality_check
+            from s03_quality_check import run_quality_check
             run_quality_check(args.data, args.batch)
             print()
 
@@ -50,7 +50,7 @@ def main():
             print("⚠  --data required for Step 4. Skipping.")
         else:
             print("── Step 4: Descriptive statistics ───────────────")
-            from scripts.s04_descriptive_stats import run_descriptive
+            from s04_descriptive_stats import run_descriptive
             run_descriptive(args.data)
             print()
 
@@ -59,7 +59,7 @@ def main():
             print("⚠  --data required for Step 5. Skipping.")
         else:
             print("── Step 5: Econometric model ─────────────────────")
-            from scripts.s05_run_model import run_models
+            from s05_run_model import run_models
             run_models(args.data)
             print()
 

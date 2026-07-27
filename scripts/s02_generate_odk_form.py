@@ -1,6 +1,6 @@
 """
 AGEVAL Step 2 — ODK XLS Form Generator
-Run: python scripts/02_generate_odk_form.py
+Run: python scripts/s02_generate_odk_form.py
 
 Reads variables_master.csv and produces a valid ODK XLSForm
 ready to upload to KoboCollect or ODK Central.

@@ -1,6 +1,6 @@
 """
 AGEVAL Step 3 — Data Quality Checker
-Run: python scripts/03_quality_check.py --data data_raw/collected_data.csv
+Run: python scripts/s03_quality_check.py --data data_raw/collected_data.csv
 
 Reads collected ODK CSV export and applies quality rules from the dictionary.
 Produces an HTML quality report per batch.
@@ -17,7 +17,7 @@ from jinja2 import Template
 BASE   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.join(BASE, "..")
 CFG    = os.path.join(ROOT, "config", "config.yaml")
-DICT   = os.path.join(ROOT, "dictionary", "variables_master.csv")
+DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
 OUTDIR = os.path.join(ROOT, "outputs", "quality")
 
 # ── HTML report template ───────────────────────────────────────────────────────

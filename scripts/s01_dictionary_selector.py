@@ -1,6 +1,6 @@
 """
 AGEVAL Step 1 - Variable Dictionary Selector
-Run: python -m streamlit run scripts/01_dictionary_selector.py
+Run: python -m streamlit run scripts/s01_dictionary_selector.py
 """
 
 import streamlit as st

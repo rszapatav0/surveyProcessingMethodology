@@ -30,11 +30,11 @@ ageval/
 │   ├── stats/                   ← Descriptive stat charts + HTML
 │   └── models/                  ← Regression tables (CSV + LaTeX)
 └── scripts/
-    ├── 01_dictionary_selector.py   ← Streamlit app to toggle variables
-    ├── 02_generate_odk_form.py     ← Builds ODK XLSForm
-    ├── 03_quality_check.py         ← QC report per batch
-    ├── 04_descriptive_stats.py     ← Charts + summary HTML
-    ├── 05_run_model.py             ← OLS / FE / IV regressions
+    ├── s01_dictionary_selector.py   ← Streamlit app to toggle variables
+    ├── s02_generate_odk_form.py     ← Builds ODK XLSForm
+    ├── s03_quality_check.py         ← QC report per batch
+    ├── s04_descriptive_stats.py     ← Charts + summary HTML
+    ├── s05_run_model.py             ← OLS / FE / IV regressions
     ├── generate_test_data.py       ← Synthetic data for testing
     └── run_pipeline.py             ← Master runner
 ```
@@ -51,22 +51,23 @@ pip install -r requirements.txt
 nano config/config.yaml
 
 # 3. Launch the variable selector (browser UI)
-streamlit run scripts/01_dictionary_selector.py
+#streamlit run scripts/01_dictionary_selector.py
+python -m streamlit run scripts/s01_dictionary_selector.py
 
 # 4. Generate ODK XLS form
-python scripts/02_generate_odk_form.py
+python scripts/s02_generate_odk_form.py
 
 # 5. Generate synthetic test data (or drop your real CSV in data_raw/)
-python scripts/generate_test_data.py
+#python scripts/generate_test_data.py
 
 # 6. Run quality check on collected data
-python scripts/03_quality_check.py --data data_raw/test_data_honduras_n200.csv --batch round1
+python scripts/s03_quality_check.py --data data_raw/test_data_honduras_n200.csv --batch round1
 
 # 7. Run descriptive statistics
-python scripts/04_descriptive_stats.py --data data_raw/test_data_honduras_n200.csv
+python scripts/s04_descriptive_stats.py --data data_raw/test_data_honduras_n200.csv
 
 # 8. Run econometric model
-python scripts/05_run_model.py --data data_raw/test_data_honduras_n200.csv
+python scripts/s05_run_model.py --data data_raw/test_data_honduras_n200.csv
 
 # Or run everything at once (steps 2–5)
 python scripts/run_pipeline.py --data data_raw/test_data_honduras_n200.csv --steps 2 3 4 5
