@@ -101,7 +101,8 @@ st.markdown("---")
 # Save button with customized download path
 if edited_frames:
     personalized = pd.concat(edited_frames)
-    csv = personalized.to_csv(index=False)
+    download_df = personalized[personalized["questionnaire_include"] == 1].copy()
+    csv = download_df.to_csv(index=False)
     st.download_button(
         label="💾 Download dictionary (CSV)",
         data=csv,
