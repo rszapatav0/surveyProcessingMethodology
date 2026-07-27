@@ -1,1 +1,0 @@
-streamlit run scripts/01_dictionary_selector.py

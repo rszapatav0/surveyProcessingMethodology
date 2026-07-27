@@ -258,7 +258,7 @@ def run_descriptive(data_path):
 
     print(f"✅  Descriptive stats report saved: {out_path}")
     print(f"    Variables rendered: {len(variables_rendered)}")
-    return out_path
+    return out_path, variables_rendered
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AGEVAL Descriptive Stats")

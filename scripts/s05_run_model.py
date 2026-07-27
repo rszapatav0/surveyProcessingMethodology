@@ -21,7 +21,7 @@ from datetime import datetime
 BASE   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.join(BASE, "..")
 CFG    = os.path.join(ROOT, "config", "config.yaml")
-DICT   = os.path.join(ROOT, "dictionary", "variables_master.csv")
+DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
 OUTDIR = os.path.join(ROOT, "outputs", "models")
 
 try:
@@ -181,7 +181,7 @@ def run_models(data_path):
         formula, dep, indep, controls = build_formula(dict_df, col_map)
     except ValueError as e:
         print(f"❌  {e}")
-        return
+        return {"error": str(e)}
 
     print(f"\n   Formula: {formula}")
     print(f"   Dependent:    {dep}")
@@ -193,7 +193,7 @@ def run_models(data_path):
 
     if err:
         print(f"❌  {err}")
-        return
+        return {"error": err, "formula": formula, "dep": dep, "indep": indep, "controls": controls}
 
     print(model.summary())
 
@@ -227,7 +227,22 @@ def run_models(data_path):
         yaml.dump(meta, f)
     print(f"✅  Metadata saved: {meta_path}")
 
-    return full_table
+    return {
+        "error":       None,
+        "full_table":  full_table,
+        "model":       model,
+        "summary_txt": model.summary().as_text(),
+        "formula":     formula,
+        "dep":         dep,
+        "indep":       indep,
+        "controls":    controls,
+        "n_obs":       int(model.nobs),
+        "r2":          round(model.rsquared, 4),
+        "r2_adj":      round(model.rsquared_adj, 4),
+        "csv_path":    csv_path if out_fmt in ("csv", "both") else None,
+        "tex_path":    tex_path if out_fmt in ("latex", "both") else None,
+        "meta_path":   meta_path,
+    }
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AGEVAL Econometric Model Runner")
