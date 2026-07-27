@@ -1,0 +1,7 @@
+data_raw/
+data_clean/
+dictionary/
+forms/
+outputs/
+scripts/old/
+scripts/__pycache__/
