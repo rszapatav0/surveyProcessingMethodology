@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_master.csv")
+DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_master.xlsx")
 
 st.set_page_config(page_title="AGEVAL — Variable Selector", layout="wide")
 
@@ -17,12 +17,12 @@ st.caption("Select which variables to include at each pipeline stage. Save your 
 # ── Load ──────────────────────────────────────────────────────────────────────
 @st.cache_data
 def load_dict():
-    return pd.read_csv(DICT_PATH)
+    return pd.read_excel(DICT_PATH, sheet_name="variables_master")
 
 df = load_dict()
 
 PIPELINE_COLS = {
-    "questionnaire_include": "📋 Questionnaire",
+    "questionnaire_include": "📋 Add to Questionnaire",
     "odk_calculate_include": "🔢 ODK Calculate",
     "quality_include":       "✅ Quality Check",
     "descriptive_include":   "📊 Descriptive Stats",
@@ -64,7 +64,7 @@ st.markdown("---")
 
 # ── Editable table per topic ──────────────────────────────────────────────────
 st.subheader("Edit pipeline flags")
-st.info("Set 1 = include, 0 = exclude. For Model Role: 0=excluded, 1=dependent, 2=independent, 3=control.")
+st.info("Add to Questionnaire: 1=include, 0=exclude. For Model Role: 0=excluded, 1=dependent, 2=independent, 3=control.")
 
 edited_frames = []
 
