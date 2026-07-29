@@ -23,6 +23,7 @@ odk:
   include_gps: true
   default_language: "Spanish (es)"
   secondary_language: "English (en)"
+  consent_variable: "consent"
 
 quality:
   outlier_method: "sd"         # "sd" or "iqr"

@@ -51,6 +51,7 @@ def load_section_config(path):
 def build_survey(df, cfg):
     lang = cfg["project"]["language"]
     label_col = "label_spanish" if lang == "spanish" else "label_english"
+    consent_var = cfg["odk"]["consent_variable"]
     rows = []
 
     # Load section/subsection order + labels from Excel
@@ -76,7 +77,6 @@ def build_survey(df, cfg):
             "name":               f"section_{topic}",
             "label::Spanish (es)": label_es,
             "label::English (en)": label_en,
-            "appearance":          "field-list",
         })
 
         # Loop through subsections
@@ -86,13 +86,7 @@ def build_survey(df, cfg):
                 continue
             # Begin subgroup
             label_es, label_en = subsection_labels.get(subtopic, (subtopic.upper(), subtopic.upper()))
-            rows.append({
-                "type":               f"begin_group",
-                "name":               f"subsection_{subtopic}",
-                "label::Spanish (es)": label_es,
-                "label::English (en)": label_en,
-                "appearance":          "field-list",
-            })
+            rows.append({"type": f"begin_group", "name": f"subsection_{subtopic}", "label::Spanish (es)": label_es, "label::English (en)": label_en,})
 
             # Repeat
             current_repeat_value = None
@@ -143,10 +137,6 @@ def build_survey(df, cfg):
                     "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
                 }
 
-                # Calculate row
-                if qtype == "calculate":
-                    survey_row["calculation"] = row.get("surv_calculation", "")
-
                 # Relevant (appear if)
                 if pd.notna(row.get("surv_relevant")) and str(row["surv_relevant"]).strip():
                     survey_row["relevant"] = row["surv_relevant"]
@@ -156,9 +146,13 @@ def build_survey(df, cfg):
                     survey_row["constraint"]         = row["surv_constraint"]
                     survey_row["constraint_message"] = row.get("surv_constraint_message", "Valor inválido")
                 
-                # REad only (for contraints)
+                # Read only (for contraints)
                 if pd.notna(row.get("surv_read_only")) and str(row["surv_read_only"]).strip():
                     survey_row["read_only"] = "TRUE" if row.get("surv_read_only") == 1 else ""
+
+                # Calculate row
+                if qtype == "calculate":
+                    survey_row["calculation"] = row.get("surv_calculation", "")
 
                 rows.append(survey_row)
 
@@ -182,6 +176,14 @@ def build_survey(df, cfg):
             rows.append({"type": "end_group", "name": f"subsection_{subtopic}"})
 
         rows.append({"type": "end_group", "name": f"section_{topic}"})
+
+        # Opening consent group
+        if topic=="quality_meta":
+            if consent_var in topic_rows["variable_name"].values:
+                rows.append({"type": "begin_group", "name": "consent", "label::Spanish (es)": "", "label::English (en)": "", "relevant": f"${{consent_var}}='1'"})
+
+    if consent_var in df["variable_name"].values:
+        rows.append({"type": "end_group", "name": "consent"})
 
     # Form metadata - ending
     rows.append({"type": "text", "name": "observations", "label::Spanish (es)": "Observaciones", "label::English (en)": "Observations"})
@@ -219,9 +221,12 @@ def build_settings(cfg):
     }])
 
 # ── Style helpers ──────────────────────────────────────────────────────────────
+# Green for titles
 HEADER_FILL     = PatternFill("solid", fgColor="1B5A24")
-SECTION_FILL    = PatternFill("solid", fgColor="73BE7B")
-SUBSECTION_FILL = PatternFill("solid", fgColor="C7E8CB")
+CONSENT_FILL    = PatternFill("solid", fgColor="4F9D58")
+SECTION_FILL    = PatternFill("solid", fgColor="8BCF93")
+SUBSECTION_FILL = PatternFill("solid", fgColor="D7F0DA")
+# Blue for operations
 REPEAT_FILL     = PatternFill("solid", fgColor="BCD6EE") #8DB4DE BCD6EE E3EFF9
 CALC_FILL       = PatternFill("solid", fgColor="E3EFF9")
 
@@ -245,6 +250,8 @@ def style_sheet(ws):
                     cell.fill = SUBSECTION_FILL
                 elif name_val.startswith("section_"):
                     cell.fill = SECTION_FILL
+                elif name_val.startswith("consent"):
+                    cell.fill = CONSENT_FILL
     for col in ws.columns:
         max_len = max((len(str(c.value or "")) for c in col), default=10)
         ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
