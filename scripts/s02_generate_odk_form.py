@@ -17,6 +17,7 @@ from datetime import datetime
 BASE   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.join(BASE, "..")
 CFG    = os.path.join(ROOT, "config", "config.yaml")
+MASTER = os.path.join(ROOT, "dictionary", "variables_master.xlsx")
 DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
 OUTDIR = os.path.join(ROOT, "forms")
 
@@ -28,46 +29,39 @@ def load_dict():
     df = pd.read_csv(DICT)
     return df.copy()
 
+# ── Reading sections and subsetions order and labels ────────────────────────────
+def load_section_config(path):
+    cfg_df = pd.read_excel(MASTER, sheet_name="sections")
+
+    def _extract(level):
+        level_df = cfg_df[cfg_df["level"] == level].sort_values("order")
+        order_list = level_df["key"].tolist()
+        labels_dict = {
+            row["key"]: (row["label_spanish"], row["label_english"])
+            for _, row in level_df.iterrows()
+        }
+        return order_list, labels_dict
+
+    topics_order, section_labels = _extract("topic")
+    subtopics_order, subsection_labels = _extract("subtopic")
+
+    return topics_order, section_labels, subtopics_order, subsection_labels
+
 # ── Build survey sheet rows ────────────────────────────────────────────────────
 def build_survey(df, cfg):
     lang = cfg["project"]["language"]
     label_col = "label_spanish" if lang == "spanish" else "label_english"
     rows = []
 
+    # Load section/subsection order + labels from Excel
+    topics_order, section_labels, subtopics_order, subsection_labels = \
+        load_section_config(MASTER)
+    
     # Form metadata - beginning
     rows.append({"type": "start", "name": "start", "label::Spanish (es)": "", "label::English (en)": ""})
     rows.append({"type": "end",   "name": "end",   "label::Spanish (es)": "", "label::English (en)": ""})
     rows.append({"type": "date", "name": "surveyDate", "label::Spanish (es)": "Fecha de la encuesta", "label::English (en)": "Survey date"})
     rows.append({"type": "deviceid", "name": "deviceid", "label::Spanish (es)": "", "label::English (en)": ""})
-
-    # Sections
-    topics_order = ["quality_meta", "household", "farm", "production", "market", "finance", "inputs", "technology","geospatial"]
-    section_labels = {
-        "quality_meta":  ("Información del Encuestador", "Enumerator Information"),
-        "household":     ("Información del Hogar",       "Household Information"),
-        "farm":          ("Información de la Finca",      "Farm Information"),
-        "production":    ("Producción de Café",           "Coffee Production"),
-        "market":        ("Mercado y Ventas",              "Market & Sales"),
-        "finance":       ("Finanzas y Crédito",            "Finance & Credit"),
-        "inputs":        ("Insumos",                       "Inputs"),
-        "technology":    ("Tecnología",                    "Technology Adoption"),
-        "geospatial":    ("Ubicación GPS",                 "GPS Location"),
-    }
-
-    # Subsections
-    subtopics_order = ["quality_meta", "household", "farm", "plot_loop", "production", "market", "finance", "inputs", "technology","geospatial"]
-    subsection_labels = {
-        "quality_meta":  ("Información del Encuestador", "Enumerator Information"),
-        "household":     ("Información del Hogar",       "Household Information"),
-        "farm":          ("Información de la Finca",      "Farm Information"),
-        "plot_loop":     ("Parcelas",                     "Plots"),
-        "production":    ("Producción de Café",           "Coffee Production"),
-        "market":        ("Mercado y Ventas",              "Market & Sales"),
-        "finance":       ("Finanzas y Crédito",            "Finance & Credit"),
-        "inputs":        ("Insumos",                       "Inputs"),
-        "technology":    ("Tecnología",                    "Technology Adoption"),
-        "geospatial":    ("Ubicación GPS",                 "GPS Location"),
-    }
 
     # Loop through sections
     for topic in topics_order:
@@ -149,6 +143,10 @@ def build_survey(df, cfg):
                     "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
                 }
 
+                # Calculate row
+                if qtype == "calculate":
+                    survey_row["calculation"] = row.get("surv_calculation", "")
+
                 # Relevant (appear if)
                 if pd.notna(row.get("surv_relevant")) and str(row["surv_relevant"]).strip():
                     survey_row["relevant"] = row["surv_relevant"]
@@ -158,6 +156,10 @@ def build_survey(df, cfg):
                     survey_row["constraint"]         = row["surv_constraint"]
                     survey_row["constraint_message"] = row.get("surv_constraint_message", "Valor inválido")
                 
+                # REad only (for contraints)
+                if pd.notna(row.get("surv_read_only")) and str(row["surv_read_only"]).strip():
+                    survey_row["read_only"] = "TRUE" if row.get("surv_read_only") == 1 else ""
+
                 rows.append(survey_row)
 
                 # Add ODK calculate immediately after raw variable
