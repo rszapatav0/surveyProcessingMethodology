@@ -41,7 +41,7 @@ except ImportError:
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def get_col(row, data):
     """Return the best available column name for a variable."""
-    calc_out = row.get("odk_calculate_output", "")
+    calc_out = row.get("surv_calculation_output", "")
     if pd.notna(calc_out) and calc_out in data.columns:
         return calc_out
     if row["variable_name"] in data.columns:
@@ -65,7 +65,7 @@ def prepare_data(dict_df, data):
 
     # Mark string / select columns as pd.Categorical so patsy handles them
     select_vars = dict_df[(dict_df["model_role"] > 0) &
-                          (dict_df["question_type"].isin(["select_one", "select_multiple", "text"]))]
+                          (dict_df["surv_type"].isin(["select_one", "select_multiple", "text"]))]
     for _, row in select_vars.iterrows():
         col = col_map.get(row["variable_name"])
         if col and col in df.columns and df[col].dtype == object:

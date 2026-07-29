@@ -172,7 +172,7 @@ def run_quality_check(data_path, batch_name=None):
     for _, row in qc_vars.iterrows():
         vname = row["variable_name"]
         # Use calculated output column if available
-        col = row.get("odk_calculate_output", vname)
+        col = row.get("surv_calculation_output", vname)
         col = col if (pd.notna(col) and col in data.columns) else vname
 
         if col not in data.columns:

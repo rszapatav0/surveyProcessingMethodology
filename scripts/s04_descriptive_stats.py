@@ -198,13 +198,13 @@ def run_descriptive(data_path):
 
     for _, row in desc_vars.iterrows():
         vname      = row["variable_name"]
-        qtype      = row.get("question_type", "text")
+        qtype      = row.get("surv_type", "text")
         label      = row.get("label_spanish", vname)
         chart_type = row.get("descriptive_chart", "histogram")
         group_var  = row.get("descriptive_group_by")
 
         # Prefer standardised column if available
-        col = row.get("odk_calculate_output", vname)
+        col = row.get("surv_calculation_output", vname)
         col = col if (pd.notna(col) and col in data.columns) else vname
 
         if col not in data.columns:

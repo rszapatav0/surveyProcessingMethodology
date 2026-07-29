@@ -126,7 +126,7 @@ elif page == "2. ODK Form Generator":
         c3.metric("Variables included", len(df))
 
         with st.expander("Preview variables to include", expanded=False):
-            st.dataframe(df[["variable_name", "topic", "question_type"]], width="stretch", height=300)
+            st.dataframe(df[["variable_name", "topic", "surv_type"]], width="stretch", height=300)
 
         if st.button("⚙️ Generate ODK XLSForm", type="primary"):
             with st.spinner("Building survey, choices and settings sheets..."):
