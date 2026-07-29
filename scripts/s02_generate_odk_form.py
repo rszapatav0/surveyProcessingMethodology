@@ -87,7 +87,7 @@ def build_survey(df, cfg):
 
         # Loop through subsections
         for subtopic in subtopics_order:
-            subtopic_rows = df[df["subtopic"] == subtopic]
+            subtopic_rows = topic_rows[topic_rows["subtopic"] == subtopic]
             if subtopic_rows.empty:
                 continue
             # Begin subgroup
@@ -100,9 +100,40 @@ def build_survey(df, cfg):
                 "appearance":          "field-list",
             })
 
+            # Repeat
+            current_repeat_value = None
+            repeat_counter = 0  # to make repeat names unique per subtopic if needed
+            def _close_repeat_if_open(rows, current_repeat_value, repeat_name):
+                if current_repeat_value is not None:
+                    rows.append({"type": "end_repeat", "name": repeat_name})
+            active_repeat_name = None
+
             for _, row in subtopic_rows.iterrows():
                 vname = row["variable_name"]
                 qtype = row["surv_type"]
+
+                # Repeat logic
+                repeat_value = row.get("surv_repeat_count")
+                has_repeat   = pd.notna(repeat_value) and str(repeat_value).strip() != ""
+                repeat_value = str(repeat_value).strip() if has_repeat else None
+                # Handle repeat open/close transitions
+                if repeat_value != current_repeat_value:
+                    # Close a previously open repeat
+                    if current_repeat_value is not None:
+                        rows.append({"type": "end_repeat", "name": active_repeat_name})
+                        active_repeat_name = None
+                    # Open a new repeat if this row starts one
+                    if has_repeat:
+                        repeat_counter += 1
+                        active_repeat_name = f"repeat_{subtopic}_{repeat_counter}"
+                        rows.append({
+                            "type":                "begin_repeat",
+                            "name":                active_repeat_name,
+                            "label::Spanish (es)": subsection_labels.get(subtopic, (subtopic.upper(), subtopic.upper()))[0],
+                            "label::English (en)": subsection_labels.get(subtopic, (subtopic.upper(), subtopic.upper()))[1],
+                            "repeat_count":        repeat_value,
+                        })
+                    current_repeat_value = repeat_value
 
                 # select_one / select_multiple get a list name
                 if qtype in ("select_one", "select_multiple"):
@@ -141,6 +172,10 @@ def build_survey(df, cfg):
                             "label::English (en)": f"[calc] {output}",
                             "calculation":         expr,
                         })
+
+            # Close any repeat still open at the end of the subsection
+            if current_repeat_value is not None:
+                rows.append({"type": "end_repeat", "name": active_repeat_name})
 
             rows.append({"type": "end_group", "name": f"subsection_{subtopic}"})
 
@@ -185,7 +220,8 @@ def build_settings(cfg):
 HEADER_FILL     = PatternFill("solid", fgColor="1B5A24")
 SECTION_FILL    = PatternFill("solid", fgColor="73BE7B")
 SUBSECTION_FILL = PatternFill("solid", fgColor="C7E8CB")
-CALC_FILL       = PatternFill("solid", fgColor="BCD6EE") #8DB4DE BCD6EE E3EFF9
+REPEAT_FILL     = PatternFill("solid", fgColor="BCD6EE") #8DB4DE BCD6EE E3EFF9
+CALC_FILL       = PatternFill("solid", fgColor="E3EFF9")
 
 def style_sheet(ws):
     for cell in ws[1]:
@@ -197,6 +233,9 @@ def style_sheet(ws):
         if "calculate" in type_val:
             for cell in row:
                 cell.fill = CALC_FILL
+        elif "repeat" in type_val: 
+            for cell in row: 
+                cell.fill = REPEAT_FILL
         elif "group" in type_val:
             for cell in row:
                 name_val = str(row[1].value or "")
@@ -219,7 +258,8 @@ def generate_form():
 
     ts       = datetime.now().strftime("%Y%m%d_%H%M")
     form_id  = cfg["project"]["form_id"]
-    out_path = os.path.join(OUTDIR, f"{form_id}_{ts}.xlsx")
+    #out_path = os.path.join(OUTDIR, f"{form_id}_{ts}.xlsx")
+    out_path = os.path.join(OUTDIR, f"{form_id}.xlsx")
     os.makedirs(OUTDIR, exist_ok=True)
 
     wb = Workbook()
@@ -245,5 +285,4 @@ def generate_form():
 
 if __name__ == "__main__":
     print("Generating ODK XLS form...")
-    print("This may take a few seconds...")
     generate_form()
