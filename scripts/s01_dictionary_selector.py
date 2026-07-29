@@ -12,11 +12,11 @@ DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_mas
 PERSONALIZED_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_personalized.csv")
 
 PIPELINE_COLS = {
-    "questionnaire_include": "📋 Add to Questionnaire",
-    "odk_calculate_include": "🔢 ODK Calculate",
-    "quality_include":       "✅ Quality Check",
-    "descriptive_include":   "📊 Descriptive Stats",
-    "model_role":            "📐 Model Role",
+    "questionnaire_include":    "📋 Add to Questionnaire",
+    "surv_calculation_include": "🔢 ODK Calculate",
+    "quality_include":          "✅ Quality Check",
+    "descriptive_include":      "📊 Descriptive Stats",
+    "model_role":               "📐 Model Role",
 }
 
 
@@ -85,15 +85,15 @@ def render(standalone: bool = False):
             continue
 
         with st.expander(f"**{topic.upper()}** — {len(topic_df)} variables", expanded=True):
-            display_cols = ["variable_name", "label_spanish", "question_type"] + stage_keys
+            display_cols = ["variable_name", "label_spanish", "surv_type"] + stage_keys
             editable = st.data_editor(
                 topic_df[display_cols].reset_index(drop=True),
                 column_config={
                     "variable_name":          st.column_config.TextColumn("Variable", disabled=True, width="medium"),
                     "label_spanish":          st.column_config.TextColumn("Label (ES)", disabled=True, width="large"),
-                    "question_type":          st.column_config.TextColumn("Type", disabled=True, width="small"),
+                    "surv_type":              st.column_config.TextColumn("Type", disabled=True, width="small"),
                     "questionnaire_include":  st.column_config.CheckboxColumn("Enabled", default=False),
-                    "odk_calculate_include":  st.column_config.NumberColumn("ODK Calc", min_value=0, max_value=1, step=1),
+                    "surv_calculate_include": st.column_config.NumberColumn("ODK Calc", min_value=0, max_value=1, step=1),
                     "quality_include":        st.column_config.NumberColumn("Quality", min_value=0, max_value=1, step=1),
                     "descriptive_include":    st.column_config.NumberColumn("Desc. Stats", min_value=0, max_value=1, step=1),
                     "model_role":             st.column_config.NumberColumn("Model Role (0-3)", min_value=0, max_value=3, step=1),
@@ -143,15 +143,15 @@ def render(standalone: bool = False):
             with c1:
                 st.markdown(f"**Label (EN):** {row['label_english']}")
                 st.markdown(f"**Label (ES):** {row['label_spanish']}")
-                st.markdown(f"**Type:** `{row['question_type']}`")
+                st.markdown(f"**Type:** `{row['surv_type']}`")
                 st.markdown(f"**Topic:** {row['topic']}")
-                if pd.notna(row.get("choices")) and row["choices"]:
-                    st.markdown(f"**Choices:** {row['choices']}")
-                if pd.notna(row.get("constraint")) and row["constraint"]:
-                    st.markdown(f"**Constraint:** `{row['constraint']}`")
+                if pd.notna(row.get("surv_choices")) and row["surv_choices"]:
+                    st.markdown(f"**Choices:** {row['surv_choices']}")
+                if pd.notna(row.get("surv_constraint")) and row["surv_constraint"]:
+                    st.markdown(f"**Constraint:** `{row['surv_constraint']}`")
             with c2:
-                st.markdown(f"**ODK Calculate:** `{row.get('odk_calculate_expr', 'n/a')}`")
-                st.markdown(f"**Output variable:** `{row.get('odk_calculate_output', 'n/a')}`")
+                st.markdown(f"**ODK Calculate:** `{row.get('surv_calculation', 'n/a')}`")
+                st.markdown(f"**Output variable:** `{row.get('surv_calculation_output', 'n/a')}`")
                 st.markdown(f"**Quality range:** {row.get('quality_min', '—')} – {row.get('quality_max', '—')}")
                 st.markdown(f"**Outlier SD threshold:** {row.get('quality_outlier_sd', '—')}")
                 if pd.notna(row.get("model_notes")) and row["model_notes"]:

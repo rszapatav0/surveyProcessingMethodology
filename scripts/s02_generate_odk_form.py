@@ -2,7 +2,7 @@
 AGEVAL Step 2 — ODK XLS Form Generator
 Run: python scripts/s02_generate_odk_form.py
 
-Reads variables_master.csv and produces a valid ODK XLSForm
+Reads variables_personalized.csv and produces a valid ODK XLSForm
 ready to upload to KoboCollect or ODK Central.
 """
 
@@ -26,8 +26,7 @@ def load_config():
 
 def load_dict():
     df = pd.read_csv(DICT)
-    # Only include rows flagged for questionnaire
-    return df[df["questionnaire_include"] == 1].copy()
+    return df.copy()
 
 # ── Build survey sheet rows ────────────────────────────────────────────────────
 def build_survey(df, cfg):
@@ -35,14 +34,14 @@ def build_survey(df, cfg):
     label_col = "label_spanish" if lang == "spanish" else "label_english"
     rows = []
 
-    # Form metadata
+    # Form metadata - beginning
     rows.append({"type": "start", "name": "start", "label::Spanish (es)": "", "label::English (en)": ""})
     rows.append({"type": "end",   "name": "end",   "label::Spanish (es)": "", "label::English (en)": ""})
-    rows.append({"type": "today", "name": "today", "label::Spanish (es)": "", "label::English (en)": ""})
+    rows.append({"type": "date", "name": "surveyDate", "label::Spanish (es)": "Fecha de la encuesta", "label::English (en)": "Survey date"})
     rows.append({"type": "deviceid", "name": "deviceid", "label::Spanish (es)": "", "label::English (en)": ""})
 
-    # Section: Household
-    topics_order = ["quality_meta", "household", "farm", "production", "market", "finance", "inputs", "technology", "wtp", "geospatial"]
+    # Sections
+    topics_order = ["quality_meta", "household", "farm", "production", "market", "finance", "inputs", "technology","geospatial"]
     section_labels = {
         "quality_meta":  ("Información del Encuestador", "Enumerator Information"),
         "household":     ("Información del Hogar",       "Household Information"),
@@ -65,7 +64,7 @@ def build_survey(df, cfg):
         # Begin group
         rows.append({
             "type":               f"begin_group",
-            "name":               f"grp_{topic}",
+            "name":               f"section_{topic}",
             "label::Spanish (es)": label_es,
             "label::English (en)": label_en,
             "appearance":          "field-list",
@@ -73,7 +72,7 @@ def build_survey(df, cfg):
 
         for _, row in topic_rows.iterrows():
             vname = row["variable_name"]
-            qtype = row["question_type"]
+            qtype = row["surv_type"]
 
             # select_one / select_multiple get a list name
             if qtype in ("select_one", "select_multiple"):
@@ -86,20 +85,20 @@ def build_survey(df, cfg):
                 "name":                vname,
                 "label::Spanish (es)": row.get("label_spanish", vname),
                 "label::English (en)": row.get("label_english", vname),
-                "required":            "yes" if row.get("required", 0) == 1 else "no",
+                "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
             }
 
             # Constraint
-            if pd.notna(row.get("constraint")) and str(row["constraint"]).strip():
-                survey_row["constraint"]         = row["constraint"]
-                survey_row["constraint_message"] = row.get("constraint_message", "Invalid value")
+            if pd.notna(row.get("surv_constraint")) and str(row["surv_constraint"]).strip():
+                survey_row["constraint"]         = row["surv_constraint"]
+                survey_row["constraint_message"] = row.get("surv_constraint_message", "Valor inválido")
 
             rows.append(survey_row)
 
             # Add ODK calculate immediately after raw variable
-            if row.get("odk_calculate_include", 0) == 1:
-                expr   = row.get("odk_calculate_expr", "")
-                output = row.get("odk_calculate_output", f"{vname}_calc")
+            if row.get("surv_calculation_include", 0) == 1:
+                expr   = row.get("surv_calculation", "")
+                output = row.get("surv_calculation_output", f"{vname}_calc")
                 if pd.notna(expr) and str(expr).strip():
                     rows.append({
                         "type":                "calculate",
@@ -109,29 +108,31 @@ def build_survey(df, cfg):
                         "calculation":         expr,
                     })
 
-        rows.append({"type": "end_group", "name": f"grp_{topic}"})
+        rows.append({"type": "end_group", "name": f"section_{topic}"})
+
+    # Form metadata - ending
+    rows.append({"type": "text", "name": "observations", "label::Spanish (es)": "Observaciones", "label::English (en)": "Observations"})
 
     return pd.DataFrame(rows)
 
 # ── Build choices sheet ────────────────────────────────────────────────────────
 def build_choices(df):
     rows = []
-    choice_rows = df[df["question_type"].isin(["select_one", "select_multiple"])]
+    choice_rows = df[df["surv_type"].isin(["select_one", "select_multiple"])]
     for _, row in choice_rows.iterrows():
         list_name = f"{row['variable_name']}_choices"
-        choices_raw = row.get("choices", "")
+        choices_raw = row.get("surv_choices", "")
         if not pd.notna(choices_raw) or not str(choices_raw).strip():
             continue
-        for pair in str(choices_raw).split(";"):
+        for pair in str(choices_raw).split("|"):
             pair = pair.strip()
             if ":" not in pair:
                 continue
             val, lbl = pair.split(":", 1)
             rows.append({
-                "list_name":           list_name,
-                "name":                val.strip(),
-                "label::Spanish (es)": lbl.strip(),
-                "label::English (en)": lbl.strip(),
+                "list_name": list_name,
+                "name":      val.strip(),
+                "label":     lbl.strip(),
             })
     return pd.DataFrame(rows)
 
@@ -142,8 +143,6 @@ def build_settings(cfg):
         "form_id":               cfg["project"]["form_id"],
         "version":               cfg["project"]["form_version"],
         "default_language":      cfg["odk"]["default_language"],
-        "style":                 "pages",
-        "instance_name":         "concat(${respondent_id}, '_', today())",
     }])
 
 # ── Style helpers ──────────────────────────────────────────────────────────────
@@ -204,4 +203,6 @@ def generate_form():
     return out_path
 
 if __name__ == "__main__":
+    print("Generating ODK XLS form...")
+    print("This may take a few seconds...")
     generate_form()
