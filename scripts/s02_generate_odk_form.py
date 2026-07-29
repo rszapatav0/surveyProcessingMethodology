@@ -54,14 +54,29 @@ def build_survey(df, cfg):
         "geospatial":    ("Ubicación GPS",                 "GPS Location"),
     }
 
+    # Subsections
+    subtopics_order = ["quality_meta", "household", "farm", "plot_loop", "production", "market", "finance", "inputs", "technology","geospatial"]
+    subsection_labels = {
+        "quality_meta":  ("Información del Encuestador", "Enumerator Information"),
+        "household":     ("Información del Hogar",       "Household Information"),
+        "farm":          ("Información de la Finca",      "Farm Information"),
+        "plot_loop":     ("Parcelas",                     "Plots"),
+        "production":    ("Producción de Café",           "Coffee Production"),
+        "market":        ("Mercado y Ventas",              "Market & Sales"),
+        "finance":       ("Finanzas y Crédito",            "Finance & Credit"),
+        "inputs":        ("Insumos",                       "Inputs"),
+        "technology":    ("Tecnología",                    "Technology Adoption"),
+        "geospatial":    ("Ubicación GPS",                 "GPS Location"),
+    }
+
+    # Loop through sections
     for topic in topics_order:
         topic_rows = df[df["topic"] == topic]
         if topic_rows.empty:
             continue
 
-        label_es, label_en = section_labels.get(topic, (topic.upper(), topic.upper()))
-
         # Begin group
+        label_es, label_en = section_labels.get(topic, (topic.upper(), topic.upper()))
         rows.append({
             "type":               f"begin_group",
             "name":               f"section_{topic}",
@@ -70,43 +85,64 @@ def build_survey(df, cfg):
             "appearance":          "field-list",
         })
 
-        for _, row in topic_rows.iterrows():
-            vname = row["variable_name"]
-            qtype = row["surv_type"]
+        # Loop through subsections
+        for subtopic in subtopics_order:
+            subtopic_rows = df[df["subtopic"] == subtopic]
+            if subtopic_rows.empty:
+                continue
+            # Begin subgroup
+            label_es, label_en = subsection_labels.get(subtopic, (subtopic.upper(), subtopic.upper()))
+            rows.append({
+                "type":               f"begin_group",
+                "name":               f"subsection_{subtopic}",
+                "label::Spanish (es)": label_es,
+                "label::English (en)": label_en,
+                "appearance":          "field-list",
+            })
 
-            # select_one / select_multiple get a list name
-            if qtype in ("select_one", "select_multiple"):
-                qtype_full = f"{qtype} {vname}_choices"
-            else:
-                qtype_full = qtype
+            for _, row in subtopic_rows.iterrows():
+                vname = row["variable_name"]
+                qtype = row["surv_type"]
 
-            survey_row = {
-                "type":                qtype_full,
-                "name":                vname,
-                "label::Spanish (es)": row.get("label_spanish", vname),
-                "label::English (en)": row.get("label_english", vname),
-                "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
-            }
+                # select_one / select_multiple get a list name
+                if qtype in ("select_one", "select_multiple"):
+                    qtype_full = f"{qtype} {vname}_choices"
+                else:
+                    qtype_full = qtype
 
-            # Constraint
-            if pd.notna(row.get("surv_constraint")) and str(row["surv_constraint"]).strip():
-                survey_row["constraint"]         = row["surv_constraint"]
-                survey_row["constraint_message"] = row.get("surv_constraint_message", "Valor inválido")
+                survey_row = {
+                    "type":                qtype_full,
+                    "name":                vname,
+                    "label::Spanish (es)": row.get("label_spanish", vname),
+                    "label::English (en)": row.get("label_english", vname),
+                    "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
+                }
 
-            rows.append(survey_row)
+                # Relevant (appear if)
+                if pd.notna(row.get("surv_relevant")) and str(row["surv_relevant"]).strip():
+                    survey_row["relevant"] = row["surv_relevant"]
 
-            # Add ODK calculate immediately after raw variable
-            if row.get("surv_calculation_include", 0) == 1:
-                expr   = row.get("surv_calculation", "")
-                output = row.get("surv_calculation_output", f"{vname}_calc")
-                if pd.notna(expr) and str(expr).strip():
-                    rows.append({
-                        "type":                "calculate",
-                        "name":                output,
-                        "label::Spanish (es)": f"[calc] {output}",
-                        "label::English (en)": f"[calc] {output}",
-                        "calculation":         expr,
-                    })
+                # Constraint
+                if pd.notna(row.get("surv_constraint")) and str(row["surv_constraint"]).strip():
+                    survey_row["constraint"]         = row["surv_constraint"]
+                    survey_row["constraint_message"] = row.get("surv_constraint_message", "Valor inválido")
+                
+                rows.append(survey_row)
+
+                # Add ODK calculate immediately after raw variable
+                if row.get("surv_calculation_include", 0) == 1:
+                    expr   = row.get("surv_calculation", "")
+                    output = row.get("surv_calculation_output", f"{vname}_calc")
+                    if pd.notna(expr) and str(expr).strip():
+                        rows.append({
+                            "type":                "calculate",
+                            "name":                output,
+                            "label::Spanish (es)": f"[calc] {output}",
+                            "label::English (en)": f"[calc] {output}",
+                            "calculation":         expr,
+                        })
+
+            rows.append({"type": "end_group", "name": f"subsection_{subtopic}"})
 
         rows.append({"type": "end_group", "name": f"section_{topic}"})
 
@@ -146,9 +182,10 @@ def build_settings(cfg):
     }])
 
 # ── Style helpers ──────────────────────────────────────────────────────────────
-HEADER_FILL = PatternFill("solid", fgColor="1D4ED8")
-CALC_FILL   = PatternFill("solid", fgColor="D1FAE5")
-GROUP_FILL  = PatternFill("solid", fgColor="E0E7FF")
+HEADER_FILL     = PatternFill("solid", fgColor="1B5A24")
+SECTION_FILL    = PatternFill("solid", fgColor="73BE7B")
+SUBSECTION_FILL = PatternFill("solid", fgColor="C7E8CB")
+CALC_FILL       = PatternFill("solid", fgColor="BCD6EE") #8DB4DE BCD6EE E3EFF9
 
 def style_sheet(ws):
     for cell in ws[1]:
@@ -162,7 +199,11 @@ def style_sheet(ws):
                 cell.fill = CALC_FILL
         elif "group" in type_val:
             for cell in row:
-                cell.fill = GROUP_FILL
+                name_val = str(row[1].value or "")
+                if name_val.startswith("subsection_"):
+                    cell.fill = SUBSECTION_FILL
+                elif name_val.startswith("section_"):
+                    cell.fill = SECTION_FILL
     for col in ws.columns:
         max_len = max((len(str(c.value or "")) for c in col), default=10)
         ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
