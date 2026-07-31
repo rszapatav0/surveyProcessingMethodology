@@ -66,6 +66,28 @@ def pick_data_file(subdir, key_prefix, label):
 def status_badge(ok):
     return "🟢" if ok else "⚪"
 
+def parse_choices(choices_str):
+    """'enc001:Encuestador 001 | enc002:Encuestador 002' -> DataFrame[code, label]"""
+    rows = []
+    if isinstance(choices_str, str) and choices_str.strip():
+        for pair in choices_str.split("|"):
+            pair = pair.strip()
+            if not pair:
+                continue
+            if ":" in pair:
+                code, label = pair.split(":", 1)
+            else:
+                code, label = pair, pair
+            rows.append({"code": code.strip(), "label": label.strip()})
+    return pd.DataFrame(rows, columns=["code", "label"])
+
+def serialize_choices(df):
+    """DataFrame[code, label] -> 'enc001:Encuestador 001 | enc002:Encuestador 002'"""
+    df = df.dropna(subset=["code"])
+    df = df[df["code"].astype(str).str.strip() != ""]
+    parts = [f"{str(r.code).strip()}:{str(r.label).strip()}" for r in df.itertuples()]
+    return " | ".join(parts)
+
 
 # ── Sidebar navigation ───────────────────────────────────────────────────────
 st.sidebar.title("🌱 AGEVAL")
@@ -112,43 +134,83 @@ elif page == "2. ODK Form Generator":
     st.caption("Builds a KoboToolbox / ODK Central-ready XLSForm from the personalized dictionary.")
 
     if not exists(DICT_PERSONALIZED):
-        st.warning("No personalized dictionary found yet. Go to **Step 1**, select your variables, "
-                    "and click **Save to project**.")
-    elif not exists(CFG_PATH):
-        st.error(f"Config file not found: `{os.path.abspath(CFG_PATH)}`")
+        st.warning("No personalized dictionary found yet.  Complete **Step 1** first.")
     else:
-        cfg = s02.load_config()
-        df = s02.load_dict()
+        dict_path = pick_data_file("dictionary", "odk", "Personalized dictionary file")
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Form title", cfg["project"]["name"])
-        c2.metric("Form ID", cfg["project"]["form_id"])
-        c3.metric("Variables included", len(df))
+        if not dict_path:
+            st.info("Select or enter a dictionary CSV file to continue.")
+        elif not exists(dict_path):
+            st.error(f"File not found: `{dict_path}`")
+        else:
+            cfg = s02.load_config()
+            df  = s02.load_dict()
 
-        with st.expander("Preview variables to include", expanded=False):
-            st.dataframe(df[["variable_name", "topic", "surv_type"]], width="stretch", height=300)
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Form title", cfg["project"]["name"])
+            c2.metric("Form ID", cfg["project"]["form_id"])
+            c3.metric("Variables included", len(df))
 
-        if st.button("⚙️ Generate ODK XLSForm", type="primary"):
-            with st.spinner("Building survey, choices and settings sheets..."):
-                try:
-                    out_path = s02.generate_form()
-                    st.session_state["last_odk_form"] = out_path
-                    st.success(f"Form generated: `{os.path.basename(out_path)}`")
-                except Exception as e:
-                    st.error(f"Form generation failed: {e}")
+            with st.expander("Preview variables to include", expanded=False):
+                st.dataframe(df[["variable_name", "topic", "surv_type"]], width="stretch", height=300)
 
-        last_form = st.session_state.get("last_odk_form")
-        if last_form and exists(last_form):
-            with open(last_form, "rb") as f:
-                st.download_button(
-                    "⬇️ Download ODK XLSForm", f, file_name=os.path.basename(last_form),
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            # ── Review/edit enumerator list before generating the form ──────
+            st.markdown("#### 👤 Review enumerators")
+            enum_mask = df["variable_name"] == "enumerator_id"
+
+            if not enum_mask.any():
+                st.info("No `enumerator_id` variable found in the dictionary — skipping enumerator editing.")
+            else:
+                enum_idx = df.index[enum_mask][0]
+                current_choices_str = df.loc[enum_idx, "surv_choices"]
+
+                if "enum_choices_df" not in st.session_state:
+                    st.session_state["enum_choices_df"] = parse_choices(current_choices_str)
+
+                st.caption("Edit codes/labels, add new rows, or delete rows below. Click **Confirm enumerator list** when done.")
+                edited_enum_df = st.data_editor(
+                    st.session_state["enum_choices_df"],
+                    num_rows="dynamic",
+                    width="stretch",
+                    key="enum_editor",
+                    column_config={
+                        "code": st.column_config.TextColumn("Code", required=True),
+                        "label": st.column_config.TextColumn("Label", required=True),
+                    },
                 )
-            c1, c2 = st.columns(2)
-            with c1.expander("Preview 'survey' sheet"):
-                st.dataframe(pd.read_excel(last_form, sheet_name="survey"), width="stretch")
-            with c2.expander("Preview 'choices' sheet"):
-                st.dataframe(pd.read_excel(last_form, sheet_name="choices"), width="stretch")
+
+                if st.button("✅ Confirm enumerator list"):
+                    st.session_state["enum_choices_df"] = edited_enum_df
+                    new_choices_str = serialize_choices(edited_enum_df)
+                    df.loc[enum_idx, "surv_choices"] = new_choices_str
+                    df.to_csv(DICT_PERSONALIZED, index=False)  # persist so s02.generate_form() picks it up
+                    st.session_state["enum_confirmed"] = True
+                    st.success(f"Enumerator list updated ({len(edited_enum_df)} entries) and saved.")
+
+                if st.session_state.get("enum_confirmed"):
+                    st.dataframe(st.session_state["enum_choices_df"], hide_index=True, width="stretch")
+
+            if st.button("⚙️ Generate ODK XLSForm", type="primary"):
+                with st.spinner("Building survey, choices and settings sheets..."):
+                    try:
+                        out_path = s02.generate_form()
+                        st.session_state["last_odk_form"] = out_path
+                        st.success(f"Form generated: `{os.path.basename(out_path)}`")
+                    except Exception as e:
+                        st.error(f"Form generation failed: {e}")
+
+            last_form = st.session_state.get("last_odk_form")
+            if last_form and exists(last_form):
+                with open(last_form, "rb") as f:
+                    st.download_button(
+                        "⬇️ Download ODK XLSForm", f, file_name=os.path.basename(last_form),
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                c1, c2 = st.columns(2)
+                with c1.expander("Preview 'survey' sheet"):
+                    st.dataframe(pd.read_excel(last_form, sheet_name="survey"), width="stretch")
+                with c2.expander("Preview 'choices' sheet"):
+                    st.dataframe(pd.read_excel(last_form, sheet_name="choices"), width="stretch")
 
 
 # ── Page 3: Quality Check ─────────────────────────────────────────────────────
