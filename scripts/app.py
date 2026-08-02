@@ -213,26 +213,48 @@ elif page == "2. ODK Form Generator":
                     st.dataframe(pd.read_excel(last_form, sheet_name="choices"), width="stretch")
 
 
+
 # ── Page 3: Quality Check ─────────────────────────────────────────────────────
 elif page == "3. Quality Check":
     st.header("✅ Step 3 — Data Quality Check")
     st.caption("Applies range, missingness and outlier checks from the dictionary to a collected ODK export.")
-
+ 
     if not exists(DICT_PERSONALIZED):
         st.warning("No personalized dictionary found yet. Complete **Step 1** first.")
     else:
         data_path = pick_data_file("data_raw", "qc", "Collected data file")
         batch_name = st.text_input("Batch name (optional)", value="")
-
+ 
+        # NEW: date range filter — options are restricted to dates that actually
+        # exist in the `surveyDate` column of the selected file.
+        date_start = date_end = None
+        if data_path:
+            available_dates = s03.get_available_dates(data_path)
+            if available_dates:
+                col1, col2 = st.columns(2)
+                with col1:
+                    date_start = st.selectbox("Start date", available_dates,
+                                               index=0, key="qc_date_start")
+                with col2:
+                    date_end = st.selectbox("End date", available_dates,
+                                             index=len(available_dates) - 1, key="qc_date_end")
+            else:
+                st.info("No `surveyDate` values found in this file — date filter unavailable.")
+ 
         if st.button("✅ Run Quality Check", type="primary", disabled=not data_path):
             with st.spinner("Checking variables against dictionary rules..."):
                 try:
-                    out_path = s03.run_quality_check(data_path, batch_name or None)
+                    out_path = s03.run_quality_check(
+                        data_path,
+                        batch_name or None,
+                        date_start=date_start,
+                        date_end=date_end,
+                    )
                     st.session_state["last_quality_report"] = out_path
                     st.success(f"Report generated: `{os.path.basename(out_path)}`")
                 except Exception as e:
                     st.error(f"Quality check failed: {e}")
-
+ 
         last_report = st.session_state.get("last_quality_report")
         if last_report and exists(last_report):
             with open(last_report, "rb") as f:
@@ -241,7 +263,6 @@ elif page == "3. Quality Check":
             with open(last_report, "r", encoding="utf-8") as f:
                 html = f.read()
             components.html(html, height=1400, scrolling=True)
-
 
 # ── Page 4: Descriptive Stats ─────────────────────────────────────────────────
 elif page == "4. Descriptive Stats":
