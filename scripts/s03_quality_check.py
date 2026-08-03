@@ -168,15 +168,18 @@ def check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct):
     return checks, flagged
  
  
-# ── Relevance check (based on surv_relevant / ODK "relevant" expressions) ──────
-def odk_to_python_expr(expr):
+# ── Shared ODK expression translation (used by relevance and constraint checks) ─
+def odk_to_python_expr(expr, dot_col=None):
     """
-    Convert an ODK-style relevance expression (as used in `relevant` columns
-    of XLSForms, stored here in `surv_relevant`) into a Python-evaluable
-    expression string that operates on a `row` dict.
+    Convert an ODK-style expression (as used in `relevant` and `constraint`
+    columns of XLSForms — stored here as `surv_relevant` / `surv_constraint`)
+    into a Python-evaluable expression string that operates on a `row` dict.
  
     Supported translations:
       ${var}                -> row.get('var')
+      .                      -> row.get(dot_col)  (ODK's "current field value"
+                                placeholder, used in constraint expressions;
+                                pass dot_col=<the field's own column name>)
       single '=' comparison -> '=='  (leaves ==, !=, <=, >= untouched)
       selected(${var},'x')  -> membership test against space-separated values
       and / or / not        -> pass through (valid Python keywords already)
@@ -197,11 +200,39 @@ def odk_to_python_expr(expr):
     # ${var} -> row.get('var')
     e = re.sub(r"\$\{([a-zA-Z0-9_]+)\}", r"row.get('\1')", e)
  
+    # standalone '.' (ODK's current-value placeholder, e.g. ". > 0") -> row.get(dot_col)
+    # The lookaround avoids matching decimal points (e.g. "0.5", which are
+    # always preceded by a digit) or dots that are part of another token.
+    if dot_col is not None:
+        e = re.sub(r"(?<![\w.])\.(?![\w.])", f"row.get('{dot_col}')", e)
+ 
     # single '=' to '==' without touching !=, <=, >=, == already present
     e = re.sub(r"(?<![=!<>])=(?!=)", "==", e)
  
     # ODK string literals use double quotes sometimes; Python is fine with both.
     return e
+ 
+ 
+def coerce_numeric(value):
+    """Try to coerce a value to float so that >, <, >=, <= comparisons in
+    relevance/constraint expressions behave numerically instead of falling
+    back to (incorrect) lexicographic string comparison. Non-numeric values
+    (including NaN/None) are returned unchanged."""
+    if value is None:
+        return value
+    try:
+        if pd.isna(value):
+            return value
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return value
+ 
+ 
+def _coerced_row_dict(row):
+    return {k: coerce_numeric(v) for k, v in row.to_dict().items()}
  
  
 def evaluate_relevance(expr_py, row_dict):
@@ -237,7 +268,7 @@ def check_relevance(report_data, id_col, col, relevant_expr):
     n_unevaluable = 0
  
     for idx, r in report_data.iterrows():
-        row_dict = r.to_dict()
+        row_dict = _coerced_row_dict(r)
         is_relevant = evaluate_relevance(expr_py, row_dict)
         rid = r.get(id_col, idx)
  
@@ -283,6 +314,66 @@ def check_relevance(report_data, id_col, col, relevant_expr):
     return checks, flagged
  
  
+# ── Constraint check (based on surv_constraint / ODK "constraint" expressions) ──
+def check_constraint(report_data, id_col, col, constraint_expr):
+    """
+    ODK evaluates a field's `constraint` only when the field has a value,
+    using '.' as the placeholder for that field's own value (e.g. ". > 0",
+    ". >= 1 and . <= 10", ". > 0 and . <= ${area_total_farm_raw}").
+ 
+    Flags every record whose value does NOT satisfy its constraint.
+    """
+    checks = []
+    flagged = []
+ 
+    if pd.isna(constraint_expr) or not str(constraint_expr).strip() or col not in report_data.columns:
+        return checks, flagged
+ 
+    expr_py = odk_to_python_expr(constraint_expr, dot_col=col)
+    if expr_py is None:
+        return checks, flagged
+ 
+    n_violations = 0
+    n_unevaluable = 0
+ 
+    for idx, r in report_data.iterrows():
+        value = r.get(col)
+        has_value = pd.notna(value) and str(value).strip() != ""
+        if not has_value:
+            continue  # constraint only applies when a value is present, as in ODK
+ 
+        rid = r.get(id_col, idx)
+        row_dict = _coerced_row_dict(r)
+ 
+        try:
+            satisfied = bool(eval(expr_py, {"__builtins__": {}}, {"row": row_dict}))
+        except Exception:
+            n_unevaluable += 1
+            continue
+ 
+        if not satisfied:
+            n_violations += 1
+            flagged.append({
+                "id":    rid,
+                "value": value,
+                "issue": f"Value {value!r} violates constraint ({constraint_expr})",
+            })
+ 
+    checks.append({
+        "name":   f"Constraint ({constraint_expr})",
+        "status": "err" if n_violations > 0 else "ok",
+        "detail": f"{n_violations} records violate constraint '{constraint_expr}'",
+    })
+    if n_unevaluable > 0:
+        checks.append({
+            "name":   "Constraint: could not be evaluated",
+            "status": "warn",
+            "detail": f"{n_unevaluable} records could not be evaluated (missing dependency variable(s) in '{constraint_expr}')",
+        })
+ 
+    return checks, flagged
+ 
+ 
 # ── Core quality checks ────────────────────────────────────────────────────────
 def check_variable(series, row, id_series, reference_series=None):
     checks = []
@@ -300,7 +391,7 @@ def check_variable(series, row, id_series, reference_series=None):
  
     valid = series.dropna()
     n_total   = len(series)
-    n_missing = series.isna().sum()
+    n_missing = (series.isna() | series.isin([555, 666, 777, 888, 999])).sum()
  
     # 1. Missing values (reported range only)
     pct_missing = round(n_missing / n_total * 100, 1) if n_total > 0 else 0
@@ -313,6 +404,7 @@ def check_variable(series, row, id_series, reference_series=None):
     # 2. Range check (fixed thresholds — flagged within reported range only)
     if pd.notna(vmin) and pd.notna(vmax):
         numeric = pd.to_numeric(valid, errors="coerce").dropna()
+        numeric = numeric[~numeric.isin([555, 666, 777, 888, 999])]
         out_of_range = numeric[(numeric < vmin) | (numeric > vmax)]
         for idx in out_of_range.index:
             flagged.append({"id": id_series.get(idx, idx), "value": numeric[idx], "issue": f"Out of range [{vmin}, {vmax}]"})
@@ -324,8 +416,11 @@ def check_variable(series, row, id_series, reference_series=None):
  
     # 3. Outlier check — reference (mean/sd) from reference_series,
     #    flags raised only among the reported range.
-    if len(reference_numeric := pd.to_numeric(reference_series.dropna(), errors="coerce").dropna()) > 4:
+    reference_numeric = pd.to_numeric(reference_series.dropna(), errors="coerce").dropna()
+    reference_numeric = reference_numeric[~reference_numeric.isin([555, 666, 777, 888, 999])]
+    if len(reference_numeric) > 4:
         numeric = pd.to_numeric(valid, errors="coerce").dropna()
+        numeric = numeric[~numeric.isin([888, 999])]
  
         if cfg_method == "sd" and pd.notna(sd_thr) and sd_thr > 0:
             mean = reference_numeric.mean()
@@ -427,7 +522,6 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
     ]
     compare_cols = [c for c in compare_cols if c in report_data.columns]
  
-    cfg_duplicate_pct = cfg["quality"]["duplicate_pct"]
     dup_checks, dup_flagged = check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct)
     results["duplicates"] = {"label": "Duplicate detection", "checks": dup_checks, "flagged_ids": dup_flagged}
  
@@ -458,6 +552,13 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
             rel_checks, rel_flagged = check_relevance(report_data, id_col, col, relevant_expr)
             checks.extend(rel_checks)
             flagged.extend(rel_flagged)
+ 
+        # ── Constraint check ─────────────────────────────────────────────────
+        constraint_expr = row.get("surv_constraint")
+        if pd.notna(constraint_expr) and str(constraint_expr).strip():
+            con_checks, con_flagged = check_constraint(report_data, id_col, col, constraint_expr)
+            checks.extend(con_checks)
+            flagged.extend(con_flagged)
  
         results[vname] = {"label": label, "checks": checks, "flagged_ids": flagged}
  
