@@ -26,7 +26,7 @@ odk:
   consent_variable: "consent"
 
 quality:
-  outlier_method: "sd"         # "sd" or "iqr"
+  outlier_method: "iqr"         # "sd" or "iqr"
   report_format: "html"        # "html" or "excel"
 
 model:

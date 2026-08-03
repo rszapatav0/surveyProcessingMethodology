@@ -1,7 +1,8 @@
 """
 AGEVAL Step 3 — Data Quality Checker
 Run: python scripts/s03_quality_check.py --data data_raw/collected_data.csv
- 
+Run: python scripts/s03_quality_check.py --data data_raw/test_data_honduras_n200.csv
+
 Reads collected ODK CSV export and applies quality rules from the dictionary.
 Produces an HTML quality report per batch.
 """
@@ -95,30 +96,28 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
- 
+
+# ── Load config and functions  ─────────────────────────────────────────────────
+cfg = yaml.safe_load(open(CFG))
+
+
 # ── Core quality checks ────────────────────────────────────────────────────────
-def check_variable(series, row, id_series, baseline_series=None):
-    """
-    `series`          — records to REPORT on (missingness %, range flags, outlier
-                         flags): the date-range-filtered subset.
-    `baseline_series` — records used to COMPUTE statistical baselines (currently
-                         just mean/sd for the outlier check): all records up to
-                         the selected end date, regardless of start date.
-                         Defaults to `series` when not provided (e.g. no date
-                         filtering applied), preserving prior behavior.
-    """
+def check_variable(series, row, id_series, reference_series=None):
     checks = []
     flagged = []
  
-    if baseline_series is None:
-        baseline_series = series
- 
+    if reference_series is None:
+        reference_series = series
+
+    # Extract global thresholds from config
+    cfg_method  = cfg["quality"]["outlier_method"]
+
+    # Extract variable-specific thresholds from the dictionary row
     vname   = row["variable_name"]
     label   = row.get("label_spanish", vname)
     vmin    = row.get("quality_min")
     vmax    = row.get("quality_max")
     sd_thr  = row.get("quality_outlier_sd")
-    method  = "sd"  # from config ideally
  
     valid = series.dropna()
     n_total   = len(series)
@@ -144,66 +143,72 @@ def check_variable(series, row, id_series, baseline_series=None):
             "detail": f"{len(out_of_range)} values out of range",
         })
  
-    # 3. Outlier check (SD) — baseline (mean/sd) from baseline_series,
+    # 3. Outlier check — reference (mean/sd) from reference_series,
     #    flags raised only among the reported range.
-    if pd.notna(sd_thr) and sd_thr > 0:
-        baseline_numeric = pd.to_numeric(baseline_series.dropna(), errors="coerce").dropna()
+    if len(reference_numeric := pd.to_numeric(reference_series.dropna(), errors="coerce").dropna()) > 4:
         numeric = pd.to_numeric(valid, errors="coerce").dropna()
-        if len(baseline_numeric) > 4:
-            mean, sd = baseline_numeric.mean(), baseline_numeric.std()
-            outliers = numeric[np.abs(numeric - mean) > sd_thr * sd]
-            for idx in outliers.index:
-                flagged.append({"id": id_series.get(idx, idx), "value": round(numeric[idx], 2),
-                                "issue": f"Outlier (>{sd_thr} SD from mean {round(mean,2)})"})
-            checks.append({
-                "name":   f"Outlier (>{sd_thr} SD)",
-                "status": "warn" if len(outliers) > 0 else "ok",
-                "detail": f"{len(outliers)} outliers detected (mean={round(mean,2)}, sd={round(sd,2)}, baseline n={len(baseline_numeric)})",
+
+        if cfg_method == "sd" and pd.notna(sd_thr) and sd_thr > 0:
+            mean = reference_numeric.mean()
+            sd = reference_numeric.std()
+            lower = mean - sd_thr * sd
+            upper = mean + sd_thr * sd
+            check_name = f"Outlier (>{sd_thr} SD)"
+            issue = f"Outlier (>{sd_thr} SD from mean {mean:.2f})"
+            detail = (
+                f"mean={mean:.2f}, sd={sd:.2f}, "
+                f"reference n={len(reference_numeric)}"
+            )
+
+        elif cfg_method == "iqr":
+            q1 = reference_numeric.quantile(0.25)
+            q3 = reference_numeric.quantile(0.75)
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            check_name = "Outlier (IQR)"
+            issue = f"Outlier (outside [{lower:.2f}, {upper:.2f}])"
+            detail = (
+                f"Q1={q1:.2f}, Q3={q3:.2f}, IQR={iqr:.2f}, "
+                f"reference n={len(reference_numeric)}"
+            )
+
+        outliers = numeric[(numeric < lower) | (numeric > upper)]
+        for idx in outliers.index:
+            flagged.append({
+                "id": id_series.get(idx, idx),
+                "value": round(numeric[idx], 2),
+                "issue": issue,
             })
- 
+        checks.append({
+            "name": check_name,
+            "status": "warn" if len(outliers) else "ok",
+            "detail": f"{len(outliers)} outliers detected ({detail})",
+        })
+        
     return checks, flagged, label
  
  
 # ── Date filtering ──────────────────────────────────────────────────────────────
 def filter_by_date(data, date_start=None, date_end=None, date_col="surveyDate"):
-    """
-    Filters `data` to rows where `date_col` falls within [date_start, date_end]
-    (inclusive). Converts `date_col` to datetime if it isn't already.
- 
-    - If `date_col` is not present in the data, the data is returned unchanged
-      (so callers/datasets without this column keep working as before).
-    - If `date_start`/`date_end` are None, that bound is not applied.
-    """
     if date_col not in data.columns:
         return data
- 
     if not pd.api.types.is_datetime64_any_dtype(data[date_col]):
         data = data.copy()
         data[date_col] = pd.to_datetime(data[date_col], errors="coerce")
- 
     if date_start is not None:
         data = data[data[date_col] >= pd.to_datetime(date_start)]
     if date_end is not None:
         data = data[data[date_col] <= pd.to_datetime(date_end)]
- 
     return data
- 
- 
+
 def get_available_dates(data_path, date_col="surveyDate"):
-    """
-    Returns a sorted list of unique dates (as `datetime.date`) actually present
-    in `date_col` for the given data file. Used by the UI to restrict the date
-    pickers to real, existing dates instead of an arbitrary calendar range.
-    Returns an empty list if the column is missing or the file can't be read.
-    """
     try:
         data = pd.read_csv(data_path, usecols=lambda c: c == date_col)
     except (ValueError, FileNotFoundError):
         return []
- 
     if date_col not in data.columns:
         return []
- 
     dates = pd.to_datetime(data[date_col], errors="coerce").dropna().dt.date
     return sorted(dates.unique())
  
@@ -218,9 +223,9 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
  
     data = pd.read_csv(data_path)
  
-    # Baseline: all records up to (and including) the selected end date,
-    # regardless of start date — used only to compute statistical baselines.
-    baseline_data = filter_by_date(data, None, date_end, date_col)
+    # Reference: all records up to (and including) the selected end date,
+    # regardless of start date — used only to compute statistical references.
+    reference_data = filter_by_date(data, None, date_end, date_col)
     # Reported: records within the full selected range — these are the ones
     # actually checked/flagged and shown in the report.
     report_data = filter_by_date(data, date_start, date_end, date_col)
@@ -244,10 +249,10 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
         if col not in report_data.columns:
             continue
  
-        baseline_col = col if col in baseline_data.columns else None
+        reference_col = col if col in reference_data.columns else None
         checks, flagged, label = check_variable(
             report_data[col], row, id_series,
-            baseline_series=baseline_data[baseline_col] if baseline_col else None,
+            reference_series=reference_data[reference_col] if reference_col else None,
         )
         results[vname] = {"label": label, "checks": checks, "flagged_ids": flagged}
  
