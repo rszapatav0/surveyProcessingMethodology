@@ -10,6 +10,7 @@ Produces an HTML quality report per batch.
 import pandas as pd
 import numpy as np
 import os
+import re
 import yaml
 import argparse
 from datetime import datetime
@@ -82,7 +83,7 @@ HTML_TEMPLATE = """
     Show {{ result.flagged_ids|length }} flagged records
   </summary>
   <table style="margin-top:.5rem;">
-    <tr><th>Record ID</th><th>Value</th><th>Issue</th></tr>
+    <tr><th>Respondent ID</th><th>Value</th><th>Issue</th></tr>
     {% for rec in result.flagged_ids %}
     <tr><td>{{ rec.id }}</td><td>{{ rec.value }}</td><td>{{ rec.issue }}</td></tr>
     {% endfor %}
@@ -96,7 +97,7 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
+ 
 # ── Load config and functions  ─────────────────────────────────────────────────
 cfg = yaml.safe_load(open(CFG))
 # Extract global thresholds from config
@@ -104,14 +105,14 @@ cfg_duplicate_pct = cfg["quality"]["duplicate_pct"]
 cfg_method        = cfg["quality"]["outlier_method"]
 cfg_missing_warn  = cfg["quality"]["missing_warn"]
 cfg_missing_err   = cfg["quality"]["missing_err"]
-
+ 
 # ── Duplicate detection ─────────────────────────────────────────────────────────
 def check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct):
     checks = []
     flagged = []
-
+ 
     extra_cols = [c for c in ["respondent_id", "start", "end", "deviceid"] if c in report_data.columns]
-
+ 
     # 1. Exact respondent_id duplicates
     id_dup_mask = report_data[id_col].duplicated(keep=False) & report_data[id_col].notna()
     id_dups = report_data[id_dup_mask]
@@ -126,25 +127,25 @@ def check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct):
         "status": "err" if len(id_dups) > 0 else "ok",
         "detail": f"{len(id_dups)} records with duplicate respondent_id",
     })
-
+ 
     # 2. Similarity duplicates — pairwise comparison across previously checked variables
     valid_compare_cols = [c for c in compare_cols if c in report_data.columns]
     n_cols = len(valid_compare_cols)
     sim_flagged = []
-
+ 
     if n_cols > 0:
         records = report_data[valid_compare_cols].reset_index(drop=True)
         ids     = report_data[id_col].reset_index(drop=True)
         extras  = report_data[extra_cols].reset_index(drop=True) if extra_cols else None
         n = len(records)
-
+ 
         for i in range(n):
             row_i = records.iloc[i]
             for j in range(i + 1, n):
                 row_j = records.iloc[j]
                 matches = (row_i == row_j) | (row_i.isna() & row_j.isna())
-                pct = (matches.sum() / n_cols) * 100
-
+                pct = matches.sum() / n_cols * 100
+ 
                 if pct >= cfg_duplicate_pct:
                     detail_extra = ""
                     if extras is not None:
@@ -156,16 +157,132 @@ def check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct):
                         "value": f"{round(pct, 1)}%" + (f" — {detail_extra}" if detail_extra else ""),
                         "issue": "Potential duplicate based on similarity",
                     })
-
+ 
     checks.append({
         "name":   f"Similarity duplicates (≥{cfg_duplicate_pct}%)",
         "status": "warn" if len(sim_flagged) > 0 else "ok",
         "detail": f"{len(sim_flagged)} record pairs flagged out of {n_cols} compared variables",
     })
-
+ 
     flagged.extend(sim_flagged)
     return checks, flagged
-
+ 
+ 
+# ── Relevance check (based on surv_relevant / ODK "relevant" expressions) ──────
+def odk_to_python_expr(expr):
+    """
+    Convert an ODK-style relevance expression (as used in `relevant` columns
+    of XLSForms, stored here in `surv_relevant`) into a Python-evaluable
+    expression string that operates on a `row` dict.
+ 
+    Supported translations:
+      ${var}                -> row.get('var')
+      single '=' comparison -> '=='  (leaves ==, !=, <=, >= untouched)
+      selected(${var},'x')  -> membership test against space-separated values
+      and / or / not        -> pass through (valid Python keywords already)
+    Returns None if the expression is empty/NaN.
+    """
+    if pd.isna(expr) or not str(expr).strip():
+        return None
+ 
+    e = str(expr).strip()
+ 
+    # selected(${var}, 'value')  -> handled before ${..} substitution so we
+    # can reference the raw variable name twice safely.
+    def _selected_repl(m):
+        var, val = m.group(1), m.group(2)
+        return f"('{val}' in str(row.get('{var}') or '').split())"
+    e = re.sub(r"selected\(\s*\$\{([a-zA-Z0-9_]+)\}\s*,\s*'([^']*)'\s*\)", _selected_repl, e)
+ 
+    # ${var} -> row.get('var')
+    e = re.sub(r"\$\{([a-zA-Z0-9_]+)\}", r"row.get('\1')", e)
+ 
+    # single '=' to '==' without touching !=, <=, >=, == already present
+    e = re.sub(r"(?<![=!<>])=(?!=)", "==", e)
+ 
+    # ODK string literals use double quotes sometimes; Python is fine with both.
+    return e
+ 
+ 
+def evaluate_relevance(expr_py, row_dict):
+    """Evaluate a translated relevance expression against a row dict.
+    Returns True/False, or None if it can't be evaluated (e.g. a dependency
+    variable is not present in the data)."""
+    if expr_py is None:
+        return None
+    try:
+        return bool(eval(expr_py, {"__builtins__": {}}, {"row": row_dict}))
+    except Exception:
+        return None
+ 
+ 
+def check_relevance(report_data, id_col, col, relevant_expr):
+    """
+    Flags:
+      - records with a value in `col` even though `relevant_expr` evaluates
+        to False (the field should have been skipped by the form logic).
+      - records where `relevant_expr` evaluates to True but `col` is missing
+        (the field was expected to be filled in — surface this alongside the
+        existing missing-value rule so it can be reviewed together).
+    """
+    checks = []
+    flagged = []
+ 
+    expr_py = odk_to_python_expr(relevant_expr)
+    if expr_py is None or col not in report_data.columns:
+        return checks, flagged
+ 
+    n_unexpected_value = 0
+    n_unexpected_missing = 0
+    n_unevaluable = 0
+ 
+    for idx, r in report_data.iterrows():
+        row_dict = r.to_dict()
+        is_relevant = evaluate_relevance(expr_py, row_dict)
+        rid = r.get(id_col, idx)
+ 
+        if is_relevant is None:
+            n_unevaluable += 1
+            continue
+ 
+        value = r.get(col)
+        has_value = pd.notna(value) and str(value).strip() != ""
+ 
+        if not is_relevant and has_value:
+            n_unexpected_value += 1
+            flagged.append({
+                "id":    rid,
+                "value": value,
+                "issue": f"Value present but relevance condition not met ({relevant_expr})",
+            })
+        elif is_relevant and not has_value:
+            n_unexpected_missing += 1
+            flagged.append({
+                "id":    rid,
+                "value": "(missing)",
+                "issue": f"Relevance condition met ({relevant_expr}) but value is missing — review against quality rules",
+            })
+ 
+    checks.append({
+        "name":   "Relevance: value present when not relevant",
+        "status": "err" if n_unexpected_value > 0 else "ok",
+        "detail": f"{n_unexpected_value} records have a value despite condition '{relevant_expr}' not being met",
+    })
+    checks.append({
+        "name":   "Relevance: missing value when relevant",
+        "status": "warn" if n_unexpected_missing > 0 else "ok",
+        "detail": f"{n_unexpected_missing} records missing a value despite condition '{relevant_expr}' being met",
+    })
+    if n_unevaluable > 0:
+        checks.append({
+            "name":   "Relevance: condition could not be evaluated",
+            "status": "warn",
+            "detail": f"{n_unevaluable} records could not be evaluated (missing dependency variable(s) in '{relevant_expr}')",
+        })
+ 
+    return checks, flagged
+ 
+ 
 # ── Core quality checks ────────────────────────────────────────────────────────
 def check_variable(series, row, id_series, reference_series=None):
     checks = []
@@ -173,7 +290,7 @@ def check_variable(series, row, id_series, reference_series=None):
  
     if reference_series is None:
         reference_series = series
-
+ 
     # Extract variable-specific thresholds from the dictionary row
     vname   = row["variable_name"]
     label   = row.get("label_spanish", vname)
@@ -209,7 +326,7 @@ def check_variable(series, row, id_series, reference_series=None):
     #    flags raised only among the reported range.
     if len(reference_numeric := pd.to_numeric(reference_series.dropna(), errors="coerce").dropna()) > 4:
         numeric = pd.to_numeric(valid, errors="coerce").dropna()
-
+ 
         if cfg_method == "sd" and pd.notna(sd_thr) and sd_thr > 0:
             mean = reference_numeric.mean()
             sd = reference_numeric.std()
@@ -221,7 +338,7 @@ def check_variable(series, row, id_series, reference_series=None):
                 f"mean={mean:.2f}, sd={sd:.2f}, "
                 f"reference n={len(reference_numeric)}"
             )
-
+ 
         elif cfg_method == "iqr":
             q1 = reference_numeric.quantile(0.25)
             q3 = reference_numeric.quantile(0.75)
@@ -234,7 +351,7 @@ def check_variable(series, row, id_series, reference_series=None):
                 f"Q1={q1:.2f}, Q3={q3:.2f}, IQR={iqr:.2f}, "
                 f"reference n={len(reference_numeric)}"
             )
-
+ 
         outliers = numeric[(numeric < lower) | (numeric > upper)]
         for idx in outliers.index:
             flagged.append({
@@ -247,7 +364,7 @@ def check_variable(series, row, id_series, reference_series=None):
             "status": "warn" if len(outliers) else "ok",
             "detail": f"{len(outliers)} outliers detected ({detail})",
         })
-        
+ 
     return checks, flagged, label
  
  
@@ -263,7 +380,7 @@ def filter_by_date(data, date_start=None, date_end=None, date_col="surveyDate"):
     if date_end is not None:
         data = data[data[date_col] <= pd.to_datetime(date_end)]
     return data
-
+ 
 def get_available_dates(data_path, date_col="surveyDate"):
     try:
         data = pd.read_csv(data_path, usecols=lambda c: c == date_col)
@@ -301,10 +418,7 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
     results = {}
     total_warnings = 0
     total_errors   = 0
-    compare_cols = []
-
-    # ── Duplicate detection (placed first so it renders first) ─────────────────
-    # NOTE: compare_cols isn't known yet here, so compute it in a quick pre-pass
+ 
     compare_cols = [
         row.get("surv_calculation_output", row["variable_name"])
         if pd.notna(row.get("surv_calculation_output")) and row.get("surv_calculation_output") in report_data.columns
@@ -312,17 +426,17 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
         for _, row in qc_vars.iterrows()
     ]
     compare_cols = [c for c in compare_cols if c in report_data.columns]
-
+ 
     cfg_duplicate_pct = cfg["quality"]["duplicate_pct"]
     dup_checks, dup_flagged = check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct)
     results["duplicates"] = {"label": "Duplicate detection", "checks": dup_checks, "flagged_ids": dup_flagged}
-
+ 
     for c in dup_checks:
         if c["status"] == "warn":
             total_warnings += 1
         elif c["status"] == "err":
-            total_errors += 1    
-
+            total_errors += 1
+ 
     for _, row in qc_vars.iterrows():
         vname = row["variable_name"]
         # Use calculated output column if available
@@ -337,6 +451,14 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
             report_data[col], row, id_series,
             reference_series=reference_data[reference_col] if reference_col else None,
         )
+ 
+        # ── Relevance check ─────────────────────────────────────────────────
+        relevant_expr = row.get("surv_relevant")
+        if pd.notna(relevant_expr) and str(relevant_expr).strip():
+            rel_checks, rel_flagged = check_relevance(report_data, id_col, col, relevant_expr)
+            checks.extend(rel_checks)
+            flagged.extend(rel_flagged)
+ 
         results[vname] = {"label": label, "checks": checks, "flagged_ids": flagged}
  
         for c in checks:
@@ -344,7 +466,7 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
                 total_warnings += 1
             elif c["status"] == "err":
                 total_errors += 1
-
+ 
     # ── Render HTML report ─────────────────────────────────────────────────────
     tmpl = Template(HTML_TEMPLATE)
     html = tmpl.render(
