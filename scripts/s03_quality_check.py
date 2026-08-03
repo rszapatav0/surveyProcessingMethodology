@@ -99,7 +99,72 @@ HTML_TEMPLATE = """
 
 # ── Load config and functions  ─────────────────────────────────────────────────
 cfg = yaml.safe_load(open(CFG))
+# Extract global thresholds from config
+cfg_duplicate_pct = cfg["quality"]["duplicate_pct"]
+cfg_method        = cfg["quality"]["outlier_method"]
+cfg_missing_warn  = cfg["quality"]["missing_warn"]
+cfg_missing_err   = cfg["quality"]["missing_err"]
 
+# ── Duplicate detection ─────────────────────────────────────────────────────────
+def check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct):
+    checks = []
+    flagged = []
+
+    extra_cols = [c for c in ["respondent_id", "start", "end", "deviceid"] if c in report_data.columns]
+
+    # 1. Exact respondent_id duplicates
+    id_dup_mask = report_data[id_col].duplicated(keep=False) & report_data[id_col].notna()
+    id_dups = report_data[id_dup_mask]
+    for idx, r in id_dups.iterrows():
+        flagged.append({
+            "id": r.get(id_col, idx),
+            "value": ", ".join(f"{c}={r.get(c, '')}" for c in extra_cols),
+            "issue": "Duplicate ID",
+        })
+    checks.append({
+        "name":   "Duplicate respondent_id",
+        "status": "err" if len(id_dups) > 0 else "ok",
+        "detail": f"{len(id_dups)} records with duplicate respondent_id",
+    })
+
+    # 2. Similarity duplicates — pairwise comparison across previously checked variables
+    valid_compare_cols = [c for c in compare_cols if c in report_data.columns]
+    n_cols = len(valid_compare_cols)
+    sim_flagged = []
+
+    if n_cols > 0:
+        records = report_data[valid_compare_cols].reset_index(drop=True)
+        ids     = report_data[id_col].reset_index(drop=True)
+        extras  = report_data[extra_cols].reset_index(drop=True) if extra_cols else None
+        n = len(records)
+
+        for i in range(n):
+            row_i = records.iloc[i]
+            for j in range(i + 1, n):
+                row_j = records.iloc[j]
+                matches = (row_i == row_j) | (row_i.isna() & row_j.isna())
+                pct = (matches.sum() / n_cols) * 100
+
+                if pct >= cfg_duplicate_pct:
+                    detail_extra = ""
+                    if extras is not None:
+                        detail_extra = " | ".join(
+                            f"{c}: {extras.iloc[i][c]} / {extras.iloc[j][c]}" for c in extra_cols
+                        )
+                    sim_flagged.append({
+                        "id":    f"{ids[i]} / {ids[j]}",
+                        "value": f"{round(pct, 1)}%" + (f" — {detail_extra}" if detail_extra else ""),
+                        "issue": "Potential duplicate based on similarity",
+                    })
+
+    checks.append({
+        "name":   f"Similarity duplicates (≥{cfg_duplicate_pct}%)",
+        "status": "warn" if len(sim_flagged) > 0 else "ok",
+        "detail": f"{len(sim_flagged)} record pairs flagged out of {n_cols} compared variables",
+    })
+
+    flagged.extend(sim_flagged)
+    return checks, flagged
 
 # ── Core quality checks ────────────────────────────────────────────────────────
 def check_variable(series, row, id_series, reference_series=None):
@@ -108,9 +173,6 @@ def check_variable(series, row, id_series, reference_series=None):
  
     if reference_series is None:
         reference_series = series
-
-    # Extract global thresholds from config
-    cfg_method  = cfg["quality"]["outlier_method"]
 
     # Extract variable-specific thresholds from the dictionary row
     vname   = row["variable_name"]
@@ -127,7 +189,7 @@ def check_variable(series, row, id_series, reference_series=None):
     pct_missing = round(n_missing / n_total * 100, 1) if n_total > 0 else 0
     checks.append({
         "name":   "Missing values",
-        "status": "err" if pct_missing > 20 else ("warn" if pct_missing > 5 else "ok"),
+        "status": "err" if pct_missing > cfg_missing_warn else ("warn" if pct_missing > cfg_missing_warn else "ok"),
         "detail": f"{n_missing}/{n_total} missing ({pct_missing}%)",
     })
  
@@ -239,7 +301,28 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
     results = {}
     total_warnings = 0
     total_errors   = 0
- 
+    compare_cols = []
+
+    # ── Duplicate detection (placed first so it renders first) ─────────────────
+    # NOTE: compare_cols isn't known yet here, so compute it in a quick pre-pass
+    compare_cols = [
+        row.get("surv_calculation_output", row["variable_name"])
+        if pd.notna(row.get("surv_calculation_output")) and row.get("surv_calculation_output") in report_data.columns
+        else row["variable_name"]
+        for _, row in qc_vars.iterrows()
+    ]
+    compare_cols = [c for c in compare_cols if c in report_data.columns]
+
+    cfg_duplicate_pct = cfg["quality"]["duplicate_pct"]
+    dup_checks, dup_flagged = check_duplicates(report_data, id_col, compare_cols, cfg_duplicate_pct)
+    results["duplicates"] = {"label": "Duplicate detection", "checks": dup_checks, "flagged_ids": dup_flagged}
+
+    for c in dup_checks:
+        if c["status"] == "warn":
+            total_warnings += 1
+        elif c["status"] == "err":
+            total_errors += 1    
+
     for _, row in qc_vars.iterrows():
         vname = row["variable_name"]
         # Use calculated output column if available
@@ -261,7 +344,7 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
                 total_warnings += 1
             elif c["status"] == "err":
                 total_errors += 1
- 
+
     # ── Render HTML report ─────────────────────────────────────────────────────
     tmpl = Template(HTML_TEMPLATE)
     html = tmpl.render(

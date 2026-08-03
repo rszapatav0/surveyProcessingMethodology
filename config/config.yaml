@@ -26,8 +26,11 @@ odk:
   consent_variable: "consent"
 
 quality:
+  duplicate_pct: 95 #Percentage of variables in common to consider a record as duplicate
   outlier_method: "iqr"         # "sd" or "iqr"
   report_format: "html"        # "html" or "excel"
+  missing_warn: 5     # Percentage threshold for missing values warning
+  missing_err: 20    # Percentage threshold for missing values error
 
 model:
   default_estimator: "OLS"     # "OLS", "FE", "IV"
