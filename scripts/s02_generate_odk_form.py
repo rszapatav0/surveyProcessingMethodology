@@ -29,7 +29,7 @@ def load_dict():
     df = pd.read_csv(DICT)
     return df.copy()
 
-# ── Reading sections and subsetions order and labels ────────────────────────────
+# ── Reading sections and subsections order and labels ────────────────────────────
 def load_section_config(path):
     cfg_df = pd.read_excel(MASTER, sheet_name="sections")
 
@@ -40,12 +40,16 @@ def load_section_config(path):
             row["key"]: (row["label_spanish"], row["label_english"])
             for _, row in level_df.iterrows()
         }
-        return order_list, labels_dict
+        hint_list = {
+            row["key"]: row["hint"] 
+            for _, row in level_df.iterrows()
+        }
+        return order_list, labels_dict, hint_list
 
-    topics_order, section_labels = _extract("topic")
-    subtopics_order, subsection_labels = _extract("subtopic")
+    topics_order, section_labels, section_hint = _extract("topic")
+    subtopics_order, subsection_labels, subsection_hint = _extract("subtopic")
 
-    return topics_order, section_labels, subtopics_order, subsection_labels
+    return topics_order, section_labels, section_hint, subtopics_order, subsection_labels, subsection_hint
 
 # ── Build survey sheet rows ────────────────────────────────────────────────────
 def build_survey(df, cfg):
@@ -55,7 +59,7 @@ def build_survey(df, cfg):
     rows = []
 
     # Load section/subsection order + labels from Excel
-    topics_order, section_labels, subtopics_order, subsection_labels = \
+    topics_order, section_labels, section_hint, subtopics_order, subsection_labels, subsection_hint = \
         load_section_config(MASTER)
     
     # Form metadata - beginning
@@ -72,11 +76,13 @@ def build_survey(df, cfg):
 
         # Begin group
         label_es, label_en = section_labels.get(topic, (topic.upper(), topic.upper()))
+        hint = section_hint.get(topic, (topic.upper()))
         rows.append({
             "type":               f"begin_group",
             "name":               f"section_{topic}",
             "label::Spanish (es)": label_es,
             "label::English (en)": label_en,
+            "hint":                hint,
         })
 
         # Loop through subsections
@@ -86,7 +92,8 @@ def build_survey(df, cfg):
                 continue
             # Begin subgroup
             label_es, label_en = subsection_labels.get(subtopic, (subtopic.upper(), subtopic.upper()))
-            rows.append({"type": f"begin_group", "name": f"subsection_{subtopic}", "label::Spanish (es)": label_es, "label::English (en)": label_en,})
+            hint = subsection_hint.get(subtopic, (subtopic.upper()))
+            rows.append({"type": f"begin_group", "name": f"subsection_{subtopic}", "label::Spanish (es)": label_es, "label::English (en)": label_en, "hint": hint})
 
             # Repeat
             current_repeat_value = None
@@ -99,6 +106,7 @@ def build_survey(df, cfg):
             for _, row in subtopic_rows.iterrows():
                 vname = row["variable_name"]
                 qtype = row["surv_type"]
+                qhint = row["surv_hint"]
 
                 # Repeat logic
                 repeat_value = row.get("surv_repeat_count")
@@ -134,6 +142,7 @@ def build_survey(df, cfg):
                     "name":                vname,
                     "label::Spanish (es)": row.get("label_spanish", vname),
                     "label::English (en)": row.get("label_english", vname),
+                    "hint":                qhint,
                     "required":            "TRUE" if row.get("surv_required", 0) == 1 else "FALSE",
                 }
 
