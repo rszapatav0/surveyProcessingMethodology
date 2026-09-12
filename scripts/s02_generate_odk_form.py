@@ -121,7 +121,7 @@ def build_survey(df, cfg):
                     # Open a new repeat if this row starts one
                     if has_repeat:
                         repeat_counter += 1
-                        active_repeat_name = f"repeat_{subtopic}_{repeat_counter}"
+                        active_repeat_name = f"{subtopic}_{repeat_counter}"
                         rows.append({
                             "type":                "begin_repeat",
                             "name":                active_repeat_name,
@@ -165,19 +165,6 @@ def build_survey(df, cfg):
 
                 rows.append(survey_row)
 
-                # Add ODK calculate immediately after raw variable
-                if row.get("surv_calculation_include", 0) == 1:
-                    expr   = row.get("surv_calculation", "")
-                    output = row.get("surv_calculation_output", f"{vname}_calc")
-                    if pd.notna(expr) and str(expr).strip():
-                        rows.append({
-                            "type":                "calculate",
-                            "name":                output,
-                            "label::Spanish (es)": f"[calc] {output}",
-                            "label::English (en)": f"[calc] {output}",
-                            "calculation":         expr,
-                        })
-
             # Close any repeat still open at the end of the subsection
             if current_repeat_value is not None:
                 rows.append({"type": "end_repeat", "name": active_repeat_name})
@@ -189,10 +176,10 @@ def build_survey(df, cfg):
         # Opening consent group
         if topic=="quality_meta":
             if consent_var in topic_rows["variable_name"].values:
-                rows.append({"type": "begin_group", "name": "consent", "label::Spanish (es)": "", "label::English (en)": "", "relevant": f"${{consent_var}}='1'"})
+                rows.append({"type": "begin_group", "name": "consent_accepted", "label::Spanish (es)": "", "label::English (en)": "", "relevant": f"${{{consent_var}}}='1'"})
 
     if consent_var in df["variable_name"].values:
-        rows.append({"type": "end_group", "name": "consent"})
+        rows.append({"type": "end_group", "name": "consent_accepted"})
 
     # Form metadata - ending
     rows.append({"type": "text", "name": "observations", "label::Spanish (es)": "Observaciones", "label::English (en)": "Observations"})

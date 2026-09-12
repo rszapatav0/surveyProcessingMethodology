@@ -13,7 +13,6 @@ PERSONALIZED_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/varia
 
 PIPELINE_COLS = {
     "questionnaire_include":    "📋 Add to Questionnaire",
-    "surv_calculation_include": "🔢 ODK Calculate",
     "quality_include":          "✅ Quality Check",
     "descriptive_include":      "📊 Descriptive Stats",
     "model_role":               "📐 Model Role",
