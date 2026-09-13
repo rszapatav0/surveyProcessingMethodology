@@ -2,7 +2,6 @@
 AGEVAL Step 3 — Data Quality Checker
 Run: python scripts/s03_quality_check.py --data data_raw/collected_data.xlsx
 Run: python scripts/s03_quality_check.py --data data_raw/test_data_honduras_n2051.xlsx
-Run: python scripts/s03_quality_check.py --data data_raw/collected_data.csv   (legacy, still supported)
 
 Reads a collected ODK/Kobo export (XLSX, with the general/main sheet plus any
 number of loop/repeat sheets — or, for backward compatibility, a single flat
@@ -695,8 +694,20 @@ def link_loop_to_main(loop_df, main_df, id_col="respondent_id", date_col="survey
     else:
         loop_df["_obs_id"] = range(1, len(loop_df) + 1)
 
+    # Parent record index in the general/main sheet (Kobo/ODK's own
+    # `_parent_index` column when present; otherwise fall back to whatever
+    # key was used above to link back to the main sheet).
+    if "_parent_index" in loop_df.columns:
+        parent_idx = loop_df["_parent_index"]
+    elif key_loop is not None:
+        parent_idx = loop_df[key_loop]
+    else:
+        parent_idx = pd.NA
+
     loop_df["_report_id"] = (
-        loop_df[id_col].astype(str) + " (obs " + loop_df["_obs_id"].astype(str) + ")"
+        loop_df[id_col].astype(str)
+        + " (parent index: " + pd.Series(parent_idx, index=loop_df.index).astype(str)
+        + ", index: " + loop_df["_obs_id"].astype(str) + ")"
     )
     return loop_df
  
