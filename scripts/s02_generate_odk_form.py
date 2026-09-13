@@ -62,12 +62,6 @@ def build_survey(df, cfg):
     topics_order, section_labels, section_hint, subtopics_order, subsection_labels, subsection_hint = \
         load_section_config(MASTER)
     
-    # Form metadata - beginning
-    rows.append({"type": "start", "name": "start", "label::Spanish (es)": "", "label::English (en)": ""})
-    rows.append({"type": "end",   "name": "end",   "label::Spanish (es)": "", "label::English (en)": ""})
-    rows.append({"type": "date", "name": "surveyDate", "label::Spanish (es)": "Fecha de la encuesta", "label::English (en)": "Survey date"})
-    rows.append({"type": "deviceid", "name": "deviceid", "label::Spanish (es)": "", "label::English (en)": ""})
-
     # Loop through sections
     for topic in topics_order:
         topic_rows = df[df["topic"] == topic]
@@ -174,7 +168,7 @@ def build_survey(df, cfg):
         rows.append({"type": "end_group", "name": f"section_{topic}"})
 
         # Opening consent group
-        if topic=="quality_meta":
+        if topic=="starting":
             if consent_var in topic_rows["variable_name"].values:
                 rows.append({"type": "begin_group", "name": "consent_accepted", "label::Spanish (es)": "", "label::English (en)": "", "relevant": f"${{{consent_var}}}='1'"})
 
