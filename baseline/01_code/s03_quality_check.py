@@ -1,6 +1,5 @@
 """
 AGEVAL Step 3 — Data Quality Checker
-Run: python baseline/01_code/s03_quality_check.py --data baseline/04_data/dataRaw/collected_data.xlsx
 Run: python baseline/01_code/s03_quality_check.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx
 
 Reads a collected ODK/Kobo export (XLSX, with the general/main sheet plus any

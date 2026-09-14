@@ -1,6 +1,5 @@
 """
 AGEVAL Step 6 — Descriptive Statistics Generator
-Run: python scripts/s06_descriptive_stats.py --data data_clean/cleaned_data.csv
 Run: python baseline/01_code/s06_descriptive_stats.py --data baseline/04_data/dataClean/test_data_honduras_n2052_clean.xlsx 
 
 Reads cleaned data and generates charts + summary HTML for all

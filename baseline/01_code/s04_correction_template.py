@@ -1,6 +1,5 @@
 """
 AGEVAL Step 4 — Correction Template Generator
-Run: python baseline/01_code/s04_correction_template.py --data baseline/04_data/dataRaw/collected_data.xlsx
 Run: python baseline/01_code/s04_correction_template.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx
 
 Reuses the same quality rules and check functions as s03_quality_check.py

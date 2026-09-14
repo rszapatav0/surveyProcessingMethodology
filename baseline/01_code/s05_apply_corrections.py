@@ -1,6 +1,5 @@
 """
 AGEVAL Step 5 — Apply Corrections
-Run: python baseline/01_code/s05_apply_corrections.py --data baseline/04_data/dataRaw/collected_data.xlsx --template baseline/04_data/correctionFiles/correction_template_collected_data.xlsx
 Run: python baseline/01_code/s05_apply_corrections.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx --template baseline/04_data/correctionFiles/correction_template_test_data_honduras_n2052.xlsx
 
 Reads a correction template (produced by s04_correction_template.py) after it
