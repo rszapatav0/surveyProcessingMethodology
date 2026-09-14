@@ -8,7 +8,13 @@ baseline/06_plots/
 baseline/07_descriptiveStatistics/
 
 # Endline
-endline/
+endline/01_code/__pycache__/
+endline/02_dictionary/
+endline/03_survey/
+endline/04_data/
+endline/05_monitoring/
+endline/06_plots/
+endline/07_descriptiveStatistics/
 
 # Harmonization
 harmonization/

@@ -1,0 +1,42 @@
+# AGEVAL Configuration
+# Edit these values for each new project
+
+project:
+  name: "Coffee IE Honduras 2026"
+  organization: "CIAT"
+  country: "Honduras"
+  language: "spanish"          # "spanish" or "english" — controls ODK labels
+  form_id: "ageval_coffee_hn"
+  form_version: "2026010101"
+  survey_round: "endline"
+
+paths:
+  base: "../.."
+  dictionary_master: "dictionary/variables_master.xlsx"
+  dictionary_personalized: "{survey_round}/02_dictionary/variables_personalized.csv"
+  forms_out: "{survey_round}/03_survey/"
+  data_raw: "{survey_round}/04_data/dataRaw/"
+  data_clean: "{survey_round}/04_data/dataClean/"
+  correction_files: "{survey_round}/04_data/correctionFiles/"
+  outputs_quality: "{survey_round}/05_monitoring/"
+  outputs_plots: "{survey_round}/06_plots/"
+  outputs_stats: "{survey_round}/07_descriptiveStatistics/"
+
+odk:
+  repeat_groups: true          # Enable multi-plot repeat groups
+  include_gps: true
+  default_language: "Spanish (es)"
+  secondary_language: "English (en)"
+  consent_variable: "consent"
+
+quality:
+  duplicate_pct: 95 #Percentage of variables in common to consider a record as duplicate
+  outlier_method: "iqr"         # "sd" or "iqr"
+  report_format: "html"        # "html" or "excel"
+  missing_warn: 5     # Percentage threshold for missing values warning
+  missing_err: 20    # Percentage threshold for missing values error
+
+model:
+  default_estimator: "OLS"     # "OLS", "FE", "IV"
+  cluster_var: "enumerator_id"
+  output_format: "both"        # "latex", "csv", or "both"
