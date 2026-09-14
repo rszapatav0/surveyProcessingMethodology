@@ -1,6 +1,6 @@
 """
 AGEVAL — Unified Survey Design & Analysis App
-Run:  python -m streamlit run baseline/01_code/app.py
+Run:  python -m streamlit run endline/01_code/app.py
 
 Wraps steps 1-6 (dictionary selection -> ODK form -> quality checks ->
 correction template -> apply corrections -> descriptive stats) into a
@@ -141,7 +141,7 @@ with st.sidebar.expander("Expected folder layout"):
         "│   ├── dataRaw/                (collected data)\n"
         "│   ├── correctionFiles/        (generated templates)\n"
         "│   └── dataClean/              (generated clean data)\n"
-        "├── 05_monitoring/              (generated quality reports)\n"
+        "├── 05_qualityCheck/            (generated quality reports)\n"
         "├── 06_plots/                   (generated charts)\n"
         "└── 07_descriptiveStatistics/   (generated reports)",
         language="text",

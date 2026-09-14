@@ -18,7 +18,7 @@ paths:
   data_raw: "{survey_round}/04_data/dataRaw/"
   data_clean: "{survey_round}/04_data/dataClean/"
   correction_files: "{survey_round}/04_data/correctionFiles/"
-  outputs_quality: "{survey_round}/05_monitoring/"
+  outputs_quality: "{survey_round}/05_qualityCheck/"
   outputs_plots: "{survey_round}/06_plots/"
   outputs_stats: "{survey_round}/07_descriptiveStatistics/"
 

@@ -3,7 +3,7 @@ baseline/01_code/__pycache__/
 baseline/02_dictionary/
 baseline/03_survey/
 baseline/04_data/
-baseline/05_monitoring/
+baseline/05_qualityCheck/
 baseline/06_plots/
 baseline/07_descriptiveStatistics/
 
@@ -12,7 +12,7 @@ endline/01_code/__pycache__/
 endline/02_dictionary/
 endline/03_survey/
 endline/04_data/
-endline/05_monitoring/
+endline/05_qualityCheck/
 endline/06_plots/
 endline/07_descriptiveStatistics/
 

@@ -141,7 +141,7 @@ with st.sidebar.expander("Expected folder layout"):
         "│   ├── dataRaw/                (collected data)\n"
         "│   ├── correctionFiles/        (generated templates)\n"
         "│   └── dataClean/              (generated clean data)\n"
-        "├── 05_monitoring/              (generated quality reports)\n"
+        "├── 05_qualityCheck/            (generated quality reports)\n"
         "├── 06_plots/                   (generated charts)\n"
         "└── 07_descriptiveStatistics/   (generated reports)",
         language="text",
