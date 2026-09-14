@@ -38,6 +38,10 @@ DICT_HARMONIZATION_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_ha
 # First 6 columns taken directly from the master dictionary
 BASE_COLS = ["topic", "subtopic", "variable_name", "var_type", "label_spanish", "label_english"]
 
+# Extra master-dictionary columns carried straight through to the saved
+# variables_personalized.csv. Not shown/edited in the Streamlit UI.
+EXTRA_SAVE_COLS = ["surv_type", "surv_choices"]
+
 # Auto-detected round-membership columns
 ROUND_COLS = ["baseline", "endline"]
 
@@ -118,6 +122,11 @@ def build_harmonization_dict(master_df, baseline_vars, endline_vars):
 
     merged["baseline"] = varnames.isin(baseline_vars).astype(int)
     merged["endline"] = varnames.isin(endline_vars).astype(int)
+
+    # Carried straight through from master for the saved CSV only — not part
+    # of any editable/display column list, so they never show up in the UI.
+    for col in EXTRA_SAVE_COLS:
+        merged[col] = master_df[col] if col in master_df.columns else pd.NA
 
     for col in HARMONIZATION_FLAG_COLS:
         if col in master_df.columns:
