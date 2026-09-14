@@ -11,13 +11,13 @@ import os
 DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_master.xlsx")
 PERSONALIZED_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_personalized.csv")
 
+# The three pipeline-stage flags a variable can be toggled into. All are
+# simple include/exclude checkboxes edited directly in the table.
 PIPELINE_COLS = {
-    "questionnaire_include":    "📋 Add to Questionnaire",
-    "quality_include":          "✅ Quality Check",
-    "descriptive_include":      "📊 Descriptive Stats",
-    "model_role":               "📐 Model Role",
+    "questionnaire_include": "Include in Survey",
+    "quality_include": "Quality Assessment",
+    "descriptive_include": "Descriptive Statistics",
 }
-
 
 @st.cache_data
 def load_dict():
@@ -107,34 +107,25 @@ def render(standalone: bool = False):
     st.sidebar.markdown("---")
     st.sidebar.markdown(f"**{len(filtered)}** variables shown")
 
-    # ── Pipeline stage summary ──────────────────────────────────────────────
-    cols = st.columns(5)
+    # Pipeline flag keys used to build the editable table below.
     stage_keys = list(PIPELINE_COLS.keys())
-
-    for i, (key, label) in enumerate(PIPELINE_COLS.items()):
-        if key == "model_role":
-            count = int((df[key] > 0).sum())
-        else:
-            count = int(df[key].sum())
-        cols[i].metric(label, count)
 
     st.markdown("---")
 
     # ── Editable table per topic ────────────────────────────────────────────
     st.subheader("Edit pipeline flags")
-    st.info("Add to Questionnaire: 1=include, 0=exclude. For Model Role: 0=excluded, 1=dependent, 2=independent, 3=control.")
+    st.info("Check a box to include the variable at that pipeline stage.")
 
     edited_frames = []
-    display_cols = ["variable_name", "label_spanish", "surv_type"] + stage_keys
+    display_cols = ["variable_name", "label_spanish", "var_type", "surv_type"] + stage_keys
     column_config = {
         "variable_name":          st.column_config.TextColumn("Variable", disabled=True, width="medium"),
         "label_spanish":          st.column_config.TextColumn("Label (ES)", disabled=True, width="large"),
+        "var_type":               st.column_config.TextColumn("Tipo de variable", disabled=True, width="small"),
         "surv_type":              st.column_config.TextColumn("Type", disabled=True, width="small"),
-        "questionnaire_include":  st.column_config.CheckboxColumn("Enabled", default=False),
-        "surv_calculate_include": st.column_config.NumberColumn("ODK Calc", min_value=0, max_value=1, step=1),
-        "quality_include":        st.column_config.NumberColumn("Quality", min_value=0, max_value=1, step=1),
-        "descriptive_include":    st.column_config.NumberColumn("Desc. Stats", min_value=0, max_value=1, step=1),
-        "model_role":             st.column_config.NumberColumn("Model Role (0-3)", min_value=0, max_value=3, step=1),
+        "questionnaire_include":  st.column_config.CheckboxColumn("Include in survey", default=False),
+        "quality_include":        st.column_config.CheckboxColumn("Quality Assessment", default=False),
+        "descriptive_include":    st.column_config.CheckboxColumn("Descriptive Statistics", default=False),
     }
 
     for topic in selected_topics:
@@ -166,8 +157,14 @@ def render(standalone: bool = False):
                     sub_label = _section_label(sub, subtopic_info)
                     st.markdown(f"##### {sub_label} — {len(sub_df)} variables")
 
+                editor_input = sub_df[display_cols].reset_index(drop=True)
+                # Coerce the flag columns to real booleans so they always
+                # render as checkboxes regardless of how they're stored in
+                # the source spreadsheet (0/1, blanks, True/False, etc.).
+                editor_input[stage_keys] = editor_input[stage_keys].fillna(0).astype(bool)
+
                 editable = st.data_editor(
-                    sub_df[display_cols].reset_index(drop=True),
+                    editor_input,
                     column_config=column_config,
                     width="stretch",
                     key=f"editor_{topic}_{sub or 'all'}",
@@ -182,6 +179,8 @@ def render(standalone: bool = False):
 
     if edited_frames:
         personalized = pd.concat(edited_frames)
+        # Store flags back as 0/1 ints for downstream steps (2-4) that expect them.
+        personalized[stage_keys] = personalized[stage_keys].astype(bool).astype(int)
         download_df = personalized[personalized["questionnaire_include"] == 1].copy()
 
         c1, c2 = st.columns(2)
@@ -214,6 +213,7 @@ def render(standalone: bool = False):
             with c1:
                 st.markdown(f"**Label (EN):** {row['label_english']}")
                 st.markdown(f"**Label (ES):** {row['label_spanish']}")
+                st.markdown(f"**Tipo de variable:** `{row['var_type']}`")
                 st.markdown(f"**Type:** `{row['surv_type']}`")
                 st.markdown(f"**Topic:** {row['topic']}")
                 if pd.notna(row.get("surv_choices")) and row["surv_choices"]:
@@ -222,11 +222,8 @@ def render(standalone: bool = False):
                     st.markdown(f"**Constraint:** `{row['surv_constraint']}`")
             with c2:
                 st.markdown(f"**ODK Calculate:** `{row.get('surv_calculation', 'n/a')}`")
-                st.markdown(f"**Output variable:** `{row.get('surv_calculation_output', 'n/a')}`")
                 st.markdown(f"**Quality range:** {row.get('quality_min', '—')} – {row.get('quality_max', '—')}")
                 st.markdown(f"**Outlier SD threshold:** {row.get('quality_outlier_sd', '—')}")
-                if pd.notna(row.get("model_notes")) and row["model_notes"]:
-                    st.markdown(f"**Model notes:** {row['model_notes']}")
 
 
 if __name__ == "__main__":

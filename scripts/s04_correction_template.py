@@ -1,5 +1,5 @@
 """
-AGEVAL Step 3b — Correction Template Generator
+AGEVAL Step 4 — Correction Template Generator
 Run: python scripts/s04_correction_template.py --data data_raw/collected_data.xlsx
 Run: python scripts/s04_correction_template.py --data data_raw/test_data_honduras_n2052.xlsx
 

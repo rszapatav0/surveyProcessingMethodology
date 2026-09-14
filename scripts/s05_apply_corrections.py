@@ -1,5 +1,5 @@
 """
-AGEVAL Step 3c — Apply Corrections
+AGEVAL Step 5 — Apply Corrections
 Run: python scripts/s05_apply_corrections.py --data data_raw/collected_data.xlsx --template outputs/corrections/correction_template_collected_data.xlsx
 Run: python scripts/s05_apply_corrections.py --data data_raw/test_data_honduras_n2052.xlsx --template outputs/corrections/correction_template_test_data_honduras_n2052.xlsx
 
