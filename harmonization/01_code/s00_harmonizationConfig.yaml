@@ -1,0 +1,30 @@
+# AGEVAL Configuration
+# Edit these values for each new project
+
+project:
+  name: "Coffee IE Honduras"
+  organization: "CIAT"
+  country: "Honduras"
+  language: "spanish"          # "spanish" or "english" — controls ODK labels
+  form_id: "ageval_coffee_hn"
+  form_version: "2026010101"
+  baseline_round: "baseline"
+  endline_round: "endline"
+
+paths:
+  base: "../.."
+  dictionary_master: "dictionary/variables_master.xlsx"
+  dictionary_baseline: "baseline/02_dictionary/variables_personalized.csv"
+  dictionary_endline: "endline/02_dictionary/variables_personalized.csv"
+  dictionary_harmonization: "harmonization/02_dictionary/variables_personalized.csv"
+  data_baseline: "baseline/04_data/dataClean/"
+  data_endline: "endline/04_data/dataClean/"
+  data_harmonization: "harmonization/03_data/"
+  outputs_quality: "harmonization/04_qualityCheck/"
+  outputs_plots: "harmonization/05_plots/"
+  outputs_regressions: "harmonization/06_regressions/"
+
+model:
+  default_estimator: "OLS"     # "OLS", "FE", "IV"
+  cluster_var: "enumerator_id"
+  output_format: "both"        # "latex", "csv", or "both"
