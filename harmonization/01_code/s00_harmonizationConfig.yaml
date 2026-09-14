@@ -20,9 +20,20 @@ paths:
   data_baseline: "baseline/04_data/dataClean/"
   data_endline: "endline/04_data/dataClean/"
   data_harmonization: "harmonization/03_data/"
-  outputs_quality: "harmonization/04_qualityCheck/"
-  outputs_plots: "harmonization/05_plots/"
-  outputs_regressions: "harmonization/06_regressions/"
+  treatment_assignment: "harmonization/04_treatmentAssignment/treatment_assignment.xlsx"
+  outputs_quality: "harmonization/05_qualityCheck/"
+  outputs_plots: "harmonization/06_plots/"
+  outputs_regressions: "harmonization/07_regressions/"
+
+harmonize:
+  id_variable: "respondent_id"   # participant/survey ID column, kept unchanged when building the long database
+  period_variable: "period"      # name of the new round indicator column
+  baseline_period_value: 0
+  endline_period_value: 1
+  long_data_filename: "data_long.csv"
+  treatment_var: "treatment"            # name of the treatment assignment column (numeric, for regressions)
+  treatment_label: "treatment_label"    # name of the treatment assignment label column
+  long_treatment_filename: "data_long_treatment.csv"   # long database + treatment, saved in data_harmonization
 
 model:
   default_estimator: "OLS"     # "OLS", "FE", "IV"

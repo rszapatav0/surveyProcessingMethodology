@@ -20,6 +20,7 @@ endline/07_descriptiveStatistics/
 harmonization/01_code/__pycache__/
 harmonization/02_dictionary/
 harmonization/03_data/
-harmonization/04_qualityCheck/
-harmonization/05_plots/
-harmonization/06_regressions/
+harmonization/04_treatmentAssignment/
+harmonization/05_qualityCheck/
+harmonization/06_plots/
+harmonization/07_regressions/
