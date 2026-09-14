@@ -7,8 +7,13 @@ Combines the master dictionary with the personalized baseline and endline
 dictionaries (each produced by the individual baseline/endline pipeline's
 Step 1 - Dictionary Selector) into a single harmonization dictionary:
 
-    * The first 6 columns come from the master dictionary:
-      topic, subtopic, variable_name, var_type, label_spanish, label_english
+    * The first 8 columns come from the master dictionary:
+      topic, subtopic, variable_name, var_type, label_spanish, label_english,
+      surv_type, surv_choices. `surv_type`/`surv_choices` are carried through
+      unedited — they identify select_one/select_multiple variables and their
+      response options for later steps (e.g. comparison plots), since
+      `var_type` alone isn't always reliable for that (a select_multiple can be
+      tagged `var_type=numerical` in the master dictionary).
     * `baseline` / `endline` are auto-detected: 1 if the variable is present
       in that round's personalized dictionary (i.e. it was included in that
       round's survey), 0 otherwise. These can be unchecked/overridden here.
@@ -35,12 +40,9 @@ DICT_BASELINE_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_baselin
 DICT_ENDLINE_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_endline"])
 DICT_HARMONIZATION_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_harmonization"])
 
-# First 6 columns taken directly from the master dictionary
-BASE_COLS = ["topic", "subtopic", "variable_name", "var_type", "label_spanish", "label_english"]
-
-# Extra master-dictionary columns carried straight through to the saved
-# variables_personalized.csv. Not shown/edited in the Streamlit UI.
-EXTRA_SAVE_COLS = ["surv_type", "surv_choices"]
+# First columns taken directly from the master dictionary, unedited
+BASE_COLS = ["topic", "subtopic", "variable_name", "var_type", "label_spanish", "label_english",
+             "surv_type", "surv_choices"]
 
 # Auto-detected round-membership columns
 ROUND_COLS = ["baseline", "endline"]
@@ -122,11 +124,6 @@ def build_harmonization_dict(master_df, baseline_vars, endline_vars):
 
     merged["baseline"] = varnames.isin(baseline_vars).astype(int)
     merged["endline"] = varnames.isin(endline_vars).astype(int)
-
-    # Carried straight through from master for the saved CSV only — not part
-    # of any editable/display column list, so they never show up in the UI.
-    for col in EXTRA_SAVE_COLS:
-        merged[col] = master_df[col] if col in master_df.columns else pd.NA
 
     for col in HARMONIZATION_FLAG_COLS:
         if col in master_df.columns:

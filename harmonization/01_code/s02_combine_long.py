@@ -13,7 +13,11 @@ endline database, and the harmonization dictionary (output of Step 1), and:
     * Coerces every variable to a consistent dtype across both rounds,
       based on the dictionary's `var_type` (numerical, dummy, date,
       categorical/text/constraint), reporting any values that failed to
-      parse.
+      parse. A variable the dictionary's `surv_type` marks as
+      select_one/select_multiple is always kept as text, even if `var_type`
+      says otherwise — this avoids destroying multi-select choice codes
+      that are sometimes mistagged `var_type=numerical` in the master
+      dictionary.
     * Appends baseline and endline vertically into one long database and
       adds a `period` column (0 = baseline, 1 = endline).
     * Keeps the participant/survey ID column's values unchanged (only
@@ -134,7 +138,7 @@ def coerce_series(series, var_type):
         out = pd.to_numeric(series, errors="coerce").round()
         out = out.astype("Int64")
     elif var_type in DATE_TYPES:
-        out = pd.to_datetime(series, errors="coerce")
+        out = pd.to_datetime(series, errors="coerce", format="mixed")
     else:  # categorical, text, constraint, or unrecognized -> plain string
         out = series.astype("string").str.strip()
 
@@ -143,11 +147,38 @@ def coerce_series(series, var_type):
     return out, n_failures
 
 
+def effective_var_types(dict_df):
+    """Map variable_name -> the var_type actually used for dtype coercion.
+
+    A select_one/select_multiple variable (per the dictionary's `surv_type`)
+    is coerced as categorical/text instead, but ONLY when `var_type` says
+    `numerical` or `date` — those are the mistagging cases (e.g. a
+    select_multiple marked `var_type=numerical` in the master dictionary,
+    which would otherwise be silently wiped out by numeric coercion).
+    `var_type == "dummy"` is deliberately never overridden: a Yes/No
+    question is commonly implemented as `select_one` in the ODK form, but
+    `dummy` is the analyst's explicit choice to treat it as a 0/1 mean, not
+    a categorical distribution — the same priority used for classifying
+    variables in the comparison-plots step.
+    Returns (var_types, overrides) where overrides lists (variable, old_type)
+    pairs that were corrected this way, for transparency."""
+    d = dict_df.drop_duplicates("variable_name").set_index("variable_name")
+    var_types = d["var_type"].to_dict()
+    overrides = []
+    if "surv_type" in d.columns:
+        surv_types = d["surv_type"].to_dict()
+        for var, styp in surv_types.items():
+            if styp in ("select_one", "select_multiple") and var_types.get(var) in (NUMERIC_TYPES | DATE_TYPES):
+                overrides.append((var, var_types[var]))
+                var_types[var] = "categorical"
+    return var_types, overrides
+
+
 def build_long(baseline_df, endline_df, dict_df, id_var, period_var,
                 baseline_value, endline_value):
     """Coerce dtypes consistently, append baseline+endline vertically, and
-    add the period indicator. Returns (long_df, coercion_report_df)."""
-    var_types = dict_df.drop_duplicates("variable_name").set_index("variable_name")["var_type"].to_dict()
+    add the period indicator. Returns (long_df, coercion_report_df, type_overrides)."""
+    var_types, type_overrides = effective_var_types(dict_df)
     coercion_report = []
 
     def process(df, label):
@@ -182,7 +213,7 @@ def build_long(baseline_df, endline_df, dict_df, id_var, period_var,
     ordered_cols += [c for c in long_df.columns if c not in ordered_cols]
     long_df = long_df[ordered_cols]
 
-    return long_df, pd.DataFrame(coercion_report)
+    return long_df, pd.DataFrame(coercion_report), type_overrides
 
 
 # ── Streamlit page ───────────────────────────────────────────────────────────
@@ -297,15 +328,17 @@ def render(standalone: bool = False):
     # ── Combine ──────────────────────────────────────────────────────────────
     st.subheader("5. Combine")
     if st.button("🔗 Combine baseline + endline into one long database", type="primary"):
-        long_df, coercion_report = build_long(
+        long_df, coercion_report, type_overrides = build_long(
             baseline_filtered, endline_filtered, dict_df, id_var, PERIOD_VAR,
             BASELINE_VALUE, ENDLINE_VALUE,
         )
         st.session_state["harmonization_long_df"] = long_df
         st.session_state["harmonization_coercion_report"] = coercion_report
+        st.session_state["harmonization_type_overrides"] = type_overrides
 
     long_df = st.session_state.get("harmonization_long_df")
     coercion_report = st.session_state.get("harmonization_coercion_report")
+    type_overrides = st.session_state.get("harmonization_type_overrides")
 
     if long_df is not None:
         st.success(f"Long database built: {len(long_df)} rows, {long_df.shape[1]} columns.")
@@ -315,6 +348,15 @@ def render(standalone: bool = False):
         m2.metric(f"{PERIOD_VAR} = {BASELINE_VALUE} (baseline)", int((long_df[PERIOD_VAR] == BASELINE_VALUE).sum()))
         m3.metric(f"{PERIOD_VAR} = {ENDLINE_VALUE} (endline)", int((long_df[PERIOD_VAR] == ENDLINE_VALUE).sum()))
         m4.metric("Variables", long_df.shape[1])
+
+        if type_overrides:
+            with st.expander(f"ℹ️ {len(type_overrides)} variable(s) treated as categorical based on `surv_type`", expanded=False):
+                st.caption(
+                    "These are flagged select_one/select_multiple in `surv_type` but tagged with a numeric-ish "
+                    "`var_type` in the dictionary — kept as text instead of being forced through numeric parsing:"
+                )
+                st.dataframe(pd.DataFrame(type_overrides, columns=["variable", "var_type in dictionary"]),
+                             hide_index=True, width="stretch")
 
         if coercion_report is not None and not coercion_report.empty:
             with st.expander(f"⚠️ Type-parsing warnings ({len(coercion_report)} column/round pairs)", expanded=False):

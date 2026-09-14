@@ -7,18 +7,18 @@ same way baseline/01_code/app.py wraps the individual survey steps. All
 folders are resolved from `s00_harmonizationConfig.yaml`.
 
 This wires in Step 1 (Dictionary Merge), Step 2 (Combine into a Long
-Database), Step 3 (Treatment Assignment), and Step 4 (Baseline/Endline
-Quality Check). Additional steps (plots, regressions, etc. on the
-combined baseline+endline data) will be added as their own s0N_*.py
-modules and new pages below, following the same pattern as the
-individual app.py.
+Database), Step 3 (Treatment Assignment), Step 4 (Baseline/Endline
+Quality Check), and Step 5 (Comparison Plots). Additional steps
+(regressions, etc. on the combined baseline+endline data) will be added
+as their own s0N_*.py modules and new pages below, following the same
+pattern as the individual app.py.
 
 NOTE: save this file as `harmonization/01_code/app.py` alongside
 `s00_harmonizationConfig.yaml`, `s01_dictionary_merge.py`,
-`s02_combine_long.py`, `s03_treatment_assignment.py` and
-`s04_quality_check.py`. It is named `app_harmonization.py` here only to
-avoid clashing with the individual pipeline's `app.py` when both are
-downloaded together.
+`s02_combine_long.py`, `s03_treatment_assignment.py`,
+`s04_quality_check.py` and `s05_comparison_plots.py`. It is named
+`app_harmonization.py` here only to avoid clashing with the individual
+pipeline's `app.py` when both are downloaded together.
 """
 
 import streamlit as st
@@ -36,6 +36,7 @@ import s01_dictionary_merge as s01
 import s02_combine_long as s02
 import s03_treatment_assignment as s03
 import s04_quality_check as s04
+import s05_comparison_plots as s05
 
 # ── Config-driven paths (single source of truth: s00_harmonizationConfig.yaml) ─
 CFG = os.path.join(SCRIPTS_DIR, "s00_harmonizationConfig.yaml")
@@ -51,6 +52,7 @@ DATA_HARM_DIR = os.path.join(BASE, config["paths"]["data_harmonization"])
 TREATMENT_PATH = os.path.join(BASE, config["paths"]["treatment_assignment"])
 TREATMENT_OUT  = os.path.join(DATA_HARM_DIR, config.get("harmonize", {}).get("long_treatment_filename", "data_long_treatment.csv"))
 OUTPUTS_QUALITY_DIR = os.path.join(BASE, config["paths"]["outputs_quality"])
+OUTPUTS_PLOTS_DIR = os.path.join(BASE, config["paths"]["outputs_plots"])
 
 st.set_page_config(page_title="AGEVAL Harmonization", layout="wide", page_icon="🌱")
 
@@ -73,9 +75,9 @@ pipeline_status = {
     "2. Combine Long Database": os.path.isdir(DATA_HARM_DIR) and len(os.listdir(DATA_HARM_DIR)) > 0,
     "3. Treatment Assignment": exists(TREATMENT_OUT),
     "4. Quality Check": os.path.isdir(OUTPUTS_QUALITY_DIR) and len(os.listdir(OUTPUTS_QUALITY_DIR)) > 0,
-    # Future steps (plots, regressions on the combined baseline+endline
-    # data) will be added here, e.g.:
-    # "5. Plots":               ...,
+    "5. Comparison Plots": os.path.isdir(OUTPUTS_PLOTS_DIR) and len(os.listdir(OUTPUTS_PLOTS_DIR)) > 0,
+    # Future steps (regressions on the combined baseline+endline data)
+    # will be added here, e.g.:
     # "6. Regressions":         ...,
 }
 
@@ -119,6 +121,10 @@ elif page == "3. Treatment Assignment":
 elif page == "4. Quality Check":
     s04.render(standalone=False)
 
+# ── Page 5: Comparison Plots ──────────────────────────────────────────────────
+elif page == "5. Comparison Plots":
+    s05.render(standalone=False)
+
 # Future pages go here, following the same pattern as the individual app.py:
-# elif page == "5. Plots":
-#     s05.render(standalone=False)
+# elif page == "6. Regressions":
+#     s06.render(standalone=False)
