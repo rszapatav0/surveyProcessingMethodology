@@ -1,7 +1,7 @@
 """
 AGEVAL Step 4 — Correction Template Generator
-Run: python scripts/s04_correction_template.py --data data_raw/collected_data.xlsx
-Run: python scripts/s04_correction_template.py --data data_raw/test_data_honduras_n2052.xlsx
+Run: python baseline/01_code/s04_correction_template.py --data baseline/04_data/dataRaw/collected_data.xlsx
+Run: python baseline/01_code/s04_correction_template.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx
 
 Reuses the same quality rules and check functions as s03_quality_check.py
 (imported, not duplicated) to identify flagged records, then builds one Excel
@@ -47,22 +47,28 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+import yaml
 import argparse
 from datetime import datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
-# ── Reuse config, dictionary paths, and quality-check functions from s03 ───────
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import s03_quality_check as qc
 
-BASE   = qc.BASE
-ROOT   = qc.ROOT
-CFG    = qc.CFG
-DICT   = qc.DICT
-OUTDIR = os.path.join(ROOT, "outputs", "corrections")
+# ── Reuse config, dictionary paths, and quality-check functions from s03 ───────
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE       = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER     = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT       = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+CORRECTIONS = os.path.join(BASE, config["paths"]["correction_files"].format(survey_round=SURVEY_ROUND))
+
 
 # Columns always shown to identify a record, regardless of which variable
 # triggered the issue. Only the ones actually present in a given sheet are
@@ -113,7 +119,7 @@ ID_WIDTHS = {
 
 # ── Recompute quality-check results, per sheet (mirrors run_quality_check's
 #    core loop, without the HTML rendering step) ────────────────────────────
-def compute_quality_results_by_sheet(data_path, date_start=None, date_end=None, date_col="surveyDate"):
+def compute_quality_results_by_sheet(data_path, date_start=None, date_end=None, date_col="surveyDate", dict_path=None):
     """
     Returns a dict:
       dict_df:         full dictionary DataFrame (all variables, not just
@@ -130,10 +136,10 @@ def compute_quality_results_by_sheet(data_path, date_start=None, date_end=None, 
                         flagged_ids}}}
       duplicates:      duplicate-check results (general sheet only)
     """
-    dict_df = pd.read_csv(DICT)
+    dict_df = pd.read_csv(dict_path or DICT)
     qc_vars = dict_df[dict_df["quality_include"] == 1]
 
-    sheets_raw, main_sheet_name = qc.load_sheets(data_path, qc.cfg)
+    sheets_raw, main_sheet_name = qc.load_sheets(data_path, qc.config)
     main_data = sheets_raw[main_sheet_name]
 
     main_reference = qc.filter_by_date(main_data, None, date_end, date_col)
@@ -146,7 +152,7 @@ def compute_quality_results_by_sheet(data_path, date_start=None, date_end=None, 
     # concept anymore, so this is now a straight intersection.
     compare_cols = [v for v in qc_vars["variable_name"] if v in main_report.columns]
 
-    dup_checks, dup_flagged = qc.check_duplicates(main_report, id_col, compare_cols, qc.cfg_duplicate_pct)
+    dup_checks, dup_flagged = qc.check_duplicates(main_report, id_col, compare_cols, config["quality"]["duplicate_pct"])
 
     general_results, _, _ = qc.run_variable_checks(main_report, main_reference, qc_vars, id_col)
 
@@ -541,8 +547,8 @@ def _id_cols_for(candidates, df):
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
-def run_correction_template(data_path, batch_name=None, date_start=None, date_end=None, date_col="surveyDate"):
-    compute_result = compute_quality_results_by_sheet(data_path, date_start, date_end, date_col)
+def run_correction_template(data_path, batch_name=None, date_start=None, date_end=None, date_col="surveyDate", dict_path=None):
+    compute_result = compute_quality_results_by_sheet(data_path, date_start, date_end, date_col, dict_path=dict_path)
     issues, var_order, var_labels = build_correction_maps(compute_result)
 
     batch = batch_name or os.path.basename(data_path).rsplit(".", 1)[0]
@@ -581,8 +587,8 @@ def run_correction_template(data_path, batch_name=None, date_start=None, date_en
         )
         sheet_summary.append((title, sheet_name, len(issues.get(sheet_name, {})), len(var_order.get(sheet_name, []))))
 
-    os.makedirs(OUTDIR, exist_ok=True)
-    out_path = os.path.join(OUTDIR, f"correction_template_{batch}.xlsx")
+    os.makedirs(CORRECTIONS, exist_ok=True)
+    out_path = os.path.join(CORRECTIONS, f"correction_template_{batch}.xlsx")
     wb.save(out_path)
 
     total_flagged = sum(n for _, _, n, _ in sheet_summary)
@@ -600,5 +606,6 @@ if __name__ == "__main__":
     parser.add_argument("--date-start", default=None, help="Filter: only records on/after this date (YYYY-MM-DD)")
     parser.add_argument("--date-end",   default=None, help="Filter: only records on/before this date (YYYY-MM-DD)")
     parser.add_argument("--date-col",   default="surveyDate", help="Column name holding the survey date")
+    parser.add_argument("--dict",       default=None, help="Path to personalized dictionary CSV (default: config path)")
     args = parser.parse_args()
-    run_correction_template(args.data, args.batch, args.date_start, args.date_end, args.date_col)
+    run_correction_template(args.data, args.batch, args.date_start, args.date_end, args.date_col, dict_path=args.dict)

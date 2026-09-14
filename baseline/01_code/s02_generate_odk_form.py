@@ -1,6 +1,6 @@
 """
 AGEVAL Step 2 — ODK XLS Form Generator
-Run: python scripts/s02_generate_odk_form.py
+Run: python baseline/01_code/s02_generate_odk_form.py
 
 Reads variables_personalized.csv and produces a valid ODK XLSForm
 ready to upload to KoboCollect or ODK Central.
@@ -14,12 +14,17 @@ from openpyxl.styles import PatternFill, Font, Alignment
 from datetime import datetime
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-BASE   = os.path.dirname(os.path.abspath(__file__))
-ROOT   = os.path.join(BASE, "..")
-CFG    = os.path.join(ROOT, "config", "config.yaml")
-MASTER = os.path.join(ROOT, "dictionary", "variables_master.xlsx")
-DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
-OUTDIR = os.path.join(ROOT, "forms")
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE    = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER  = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT    = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+OUTFORM = os.path.join(BASE, config["paths"]["forms_out"].format(survey_round=SURVEY_ROUND))
 
 def load_config():
     with open(CFG) as f:
@@ -28,6 +33,7 @@ def load_config():
 def load_dict():
     df = pd.read_csv(DICT)
     return df.copy()
+
 
 # ── Reading sections and subsections order and labels ────────────────────────────
 def load_section_config(path):
@@ -257,9 +263,9 @@ def generate_form():
 
     ts       = datetime.now().strftime("%Y%m%d_%H%M")
     form_id  = cfg["project"]["form_id"]
-    #out_path = os.path.join(OUTDIR, f"{form_id}_{ts}.xlsx")
-    out_path = os.path.join(OUTDIR, f"{form_id}.xlsx")
-    os.makedirs(OUTDIR, exist_ok=True)
+    #out_path = os.path.join(OUTFORM, f"{form_id}_{ts}.xlsx")
+    out_path = os.path.join(OUTFORM, f"{form_id}.xlsx")
+    os.makedirs(OUTFORM, exist_ok=True)
 
     wb = Workbook()
 

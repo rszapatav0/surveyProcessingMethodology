@@ -1,7 +1,7 @@
 """
 AGEVAL Step 3 — Data Quality Checker
-Run: python scripts/s03_quality_check.py --data data_raw/collected_data.xlsx
-Run: python scripts/s03_quality_check.py --data data_raw/test_data_honduras_n2052.xlsx
+Run: python baseline/01_code/s03_quality_check.py --data baseline/04_data/dataRaw/collected_data.xlsx
+Run: python baseline/01_code/s03_quality_check.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx
 
 Reads a collected ODK/Kobo export (XLSX, with the general/main sheet plus any
 number of loop/repeat sheets — or, for backward compatibility, a single flat
@@ -27,12 +27,21 @@ import yaml
 import argparse
 from datetime import datetime
 from jinja2 import Template
- 
-BASE   = os.path.dirname(os.path.abspath(__file__))
-ROOT   = os.path.join(BASE, "..")
-CFG    = os.path.join(ROOT, "config", "config.yaml")
-DICT   = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
-OUTDIR = os.path.join(ROOT, "outputs", "quality")
+
+
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE       = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER     = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT       = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+DATARAW   = os.path.join(BASE, config["paths"]["data_raw"].format(survey_round=SURVEY_ROUND))
+OUTQUALITY = os.path.join(BASE, config["paths"]["outputs_quality"].format(survey_round=SURVEY_ROUND))
+
  
 # ── HTML report template ───────────────────────────────────────────────────────
 HTML_TEMPLATE = """
@@ -769,11 +778,11 @@ def run_variable_checks(report_data, reference_data, qc_vars, id_col):
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
-def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None, date_col="surveyDate"):
+def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None, date_col="surveyDate", dict_path=None):
     with open(CFG) as f:
         cfg = yaml.safe_load(f)
  
-    dict_df = pd.read_csv(DICT)
+    dict_df = pd.read_csv(dict_path or DICT)
     qc_vars = dict_df[dict_df["quality_include"] == 1]
  
     batch = batch_name or os.path.basename(data_path).rsplit(".", 1)[0]
@@ -861,8 +870,8 @@ def run_quality_check(data_path, batch_name=None, date_start=None, date_end=None
         loop_sections=loop_sections,
     )
  
-    os.makedirs(OUTDIR, exist_ok=True)
-    out_path  = os.path.join(OUTDIR, f"quality_report_{batch}.html")
+    os.makedirs(OUTQUALITY, exist_ok=True)
+    out_path  = os.path.join(OUTQUALITY, f"quality_report_{batch}.html")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
  
@@ -882,5 +891,6 @@ if __name__ == "__main__":
     parser.add_argument("--date-start", default=None, help="Filter: only records on/after this date (YYYY-MM-DD)")
     parser.add_argument("--date-end",   default=None, help="Filter: only records on/before this date (YYYY-MM-DD)")
     parser.add_argument("--date-col",   default="surveyDate", help="Column name holding the survey date")
+    parser.add_argument("--dict",       default=None, help="Path to personalized dictionary CSV (default: config path)")
     args = parser.parse_args()
-    run_quality_check(args.data, args.batch, args.date_start, args.date_end, args.date_col)
+    run_quality_check(args.data, args.batch, args.date_start, args.date_end, args.date_col, dict_path=args.dict)

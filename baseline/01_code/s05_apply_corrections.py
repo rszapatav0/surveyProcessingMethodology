@@ -1,7 +1,7 @@
 """
 AGEVAL Step 5 — Apply Corrections
-Run: python scripts/s05_apply_corrections.py --data data_raw/collected_data.xlsx --template outputs/corrections/correction_template_collected_data.xlsx
-Run: python scripts/s05_apply_corrections.py --data data_raw/test_data_honduras_n2052.xlsx --template outputs/corrections/correction_template_test_data_honduras_n2052.xlsx
+Run: python baseline/01_code/s05_apply_corrections.py --data baseline/04_data/dataRaw/collected_data.xlsx --template baseline/04_data/correctionFiles/correction_template_collected_data.xlsx
+Run: python baseline/01_code/s05_apply_corrections.py --data baseline/04_data/dataRaw/test_data_honduras_n2052.xlsx --template baseline/04_data/correctionFiles/correction_template_test_data_honduras_n2052.xlsx
 
 Reads a correction template (produced by s04_correction_template.py) after it
 has been reviewed by the survey supervision team, and applies the completed
@@ -57,18 +57,30 @@ import numpy as np
 import os
 import sys
 import argparse
-
+import yaml
 from openpyxl import load_workbook
+import s04_correction_template as tmpl
 
 # ── Reuse config/dictionary paths and template layout constants from s04 ──────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import s04_correction_template as tmpl
 
 qc = tmpl.qc  # s03_quality_check, re-exported by s04
 
-BASE = qc.BASE
-ROOT = qc.ROOT
-DICT = qc.DICT
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+    cfg = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE       = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER     = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT       = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+DATARAW   = os.path.join(BASE, config["paths"]["data_raw"].format(survey_round=SURVEY_ROUND))
+CORRECTIONS    = os.path.join(BASE, config["paths"]["correction_files"].format(survey_round=SURVEY_ROUND))
+DATACLEAN   = os.path.join(BASE, config["paths"]["data_clean"].format(survey_round=SURVEY_ROUND))
+
 
 GROUP_HEADER_ROW = tmpl.GROUP_HEADER_ROW
 COL_HEADER_ROW   = tmpl.COL_HEADER_ROW
@@ -532,13 +544,13 @@ def recalculate_variables(working, dict_df, id_col):
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
-def apply_corrections(data_path, template_path, id_col=None, output_suffix="_clean", output_path=None):
+def apply_corrections(data_path, template_path, id_col=None, output_suffix="_clean", output_path=None, dict_path=None):
     """
     Applies a completed correction template onto the original dataset,
     recalculates every calculated variable, and saves the result as a new
     file. Returns (output_path, summary dict).
     """
-    dict_df = pd.read_csv(DICT)
+    dict_df = pd.read_csv(dict_path or DICT)
 
     sheets_raw, main_sheet_name = qc.load_sheets(data_path, qc.cfg)
     if id_col is None:
@@ -618,9 +630,10 @@ def apply_corrections(data_path, template_path, id_col=None, output_suffix="_cle
     skipped_calc = recalculate_variables(working, dict_df, id_col)
 
     if output_path is None:
-        base, ext = os.path.splitext(data_path)
+        base, ext = os.path.splitext(os.path.basename(data_path))
         ext = ext if ext else (".xlsx" if qc.is_excel_file(data_path) else ".csv")
-        output_path = f"{base}{output_suffix}{ext}"
+        output_path = os.path.join(DATACLEAN, f"{base}{output_suffix}{ext}")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     if qc.is_excel_file(data_path):
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
@@ -648,10 +661,12 @@ if __name__ == "__main__":
     parser.add_argument("--id-col",   default=None,  help="Survey ID column name (default: respondent_id)")
     parser.add_argument("--suffix",   default="_clean", help="Suffix appended to the output file name")
     parser.add_argument("--output",   default=None,  help="Optional explicit output path (overrides --suffix)")
+    parser.add_argument("--dict",     default=None,  help="Path to personalized dictionary CSV (default: config path)")
     args = parser.parse_args()
 
     out_path, summary = apply_corrections(
-        args.data, args.template, id_col=args.id_col, output_suffix=args.suffix, output_path=args.output
+        args.data, args.template, id_col=args.id_col, output_suffix=args.suffix, output_path=args.output,
+        dict_path=args.dict,
     )
 
     print(f"✅  Cleaned dataset saved: {out_path}")

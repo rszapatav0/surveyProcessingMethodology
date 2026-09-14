@@ -1,7 +1,14 @@
-data_raw/
-data_clean/
-dictionary/
-forms/
-outputs/
-scripts/old/
-scripts/__pycache__/
+# Baseline
+baseline/01_code/__pycache__/
+baseline/02_dictionary/
+baseline/03_survey/
+baseline/04_data/
+baseline/05_monitoring/
+baseline/06_plots/
+baseline/07_descriptiveStatistics/
+
+# Endline
+endline/
+
+# Harmonization
+harmonization/

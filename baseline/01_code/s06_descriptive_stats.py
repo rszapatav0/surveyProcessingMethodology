@@ -1,6 +1,7 @@
 """
-AGEVAL Step 4 — Descriptive Statistics Generator
-Run: python scripts/s04_descriptive_stats.py --data data_clean/cleaned_data.csv
+AGEVAL Step 6 — Descriptive Statistics Generator
+Run: python scripts/s06_descriptive_stats.py --data data_clean/cleaned_data.csv
+Run: python baseline/01_code/s06_descriptive_stats.py --data baseline/04_data/dataClean/test_data_honduras_n2052_clean.xlsx 
 
 Reads cleaned data and generates charts + summary HTML for all
 variables flagged descriptive_include=1 in the dictionary.
@@ -24,12 +25,24 @@ import argparse
 from datetime import datetime
 from jinja2 import Template
 
-BASE     = os.path.dirname(os.path.abspath(__file__))
-ROOT     = os.path.join(BASE, "..")
-CFG      = os.path.join(ROOT, "config", "config.yaml")
-DICT     = os.path.join(ROOT, "dictionary", "variables_personalized.csv")
-SECTIONS = os.path.join(ROOT, "dictionary", "variables_master.xlsx")
-OUTDIR   = os.path.join(ROOT, "outputs", "stats")
+
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+    cfg = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE       = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER     = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT       = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+DATARAW   = os.path.join(BASE, config["paths"]["data_raw"].format(survey_round=SURVEY_ROUND))
+CORRECTIONS = os.path.join(BASE, config["paths"]["correction_files"].format(survey_round=SURVEY_ROUND))
+DATACLEAN   = os.path.join(BASE, config["paths"]["data_clean"].format(survey_round=SURVEY_ROUND))
+OUTPLOTS = os.path.join(BASE, config["paths"]["outputs_plots"].format(survey_round=SURVEY_ROUND))
+OUTSTATS = os.path.join(BASE, config["paths"]["outputs_stats"].format(survey_round=SURVEY_ROUND))
+
 
 # ── Plot style ─────────────────────────────────────────────────────────────────
 BLUE   = "#1D4ED8"
@@ -223,18 +236,18 @@ HTML_TMPL = """
 """
 
 # ── Main ───────────────────────────────────────────────────────────────────────
-def run_descriptive(data_path):
+def run_descriptive(data_path, dict_path=None):
     with open(CFG) as f:
         cfg = yaml.safe_load(f)
 
-    dict_df   = pd.read_csv(DICT)
+    dict_df   = pd.read_csv(dict_path or DICT)
     desc_vars = dict_df[dict_df["descriptive_include"] == 1].copy()
-    sections  = load_sections(SECTIONS)
+    sections  = load_sections(MASTER)
     data      = load_data(data_path)
     n_records = len(data)
 
-    os.makedirs(OUTDIR, exist_ok=True)
-    charts_dir = os.path.join(OUTDIR, "charts")
+    os.makedirs(OUTSTATS, exist_ok=True)
+    charts_dir = OUTPLOTS
     os.makedirs(charts_dir, exist_ok=True)
 
     variables_rendered = []
@@ -279,7 +292,7 @@ def run_descriptive(data_path):
             "subtopic_order":  sections["subtopic_order"].get(subtopic, float("inf")),
             "topic_label":     sections["topic_label"].get(topic, str(topic).upper()),
             "subtopic_label":  sections["subtopic_label"].get(subtopic, str(subtopic)),
-            "chart_path":      os.path.relpath(chart_path, OUTDIR),
+            "chart_path":      os.path.relpath(chart_path, OUTSTATS),
             "stats":           stats,
         })
 
@@ -298,7 +311,7 @@ def run_descriptive(data_path):
     )
 
     ts       = datetime.now().strftime("%Y%m%d_%H%M")
-    out_path = os.path.join(OUTDIR, f"descriptive_stats_{ts}.html")
+    out_path = os.path.join(OUTSTATS, f"descriptive_stats_{ts}.html")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -309,5 +322,6 @@ def run_descriptive(data_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AGEVAL Descriptive Stats")
     parser.add_argument("--data", required=True, help="Path to cleaned CSV data file")
+    parser.add_argument("--dict", default=None, help="Path to personalized dictionary CSV (default: config path)")
     args = parser.parse_args()
-    run_descriptive(args.data)
+    run_descriptive(args.data, dict_path=args.dict)

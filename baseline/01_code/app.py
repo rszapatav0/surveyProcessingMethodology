@@ -25,8 +25,27 @@ if SCRIPTS_DIR not in sys.path:
 import s01_dictionary_selector as s01
 import s02_generate_odk_form as s02
 import s03_quality_check as s03
-import s04_descriptive_stats as s04
-import s05_run_model as s05
+import s04_correction_template as s04
+import s05_apply_corrections as s05
+import s06_descriptive_stats as s06
+
+
+# Read config
+CFG = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CFG, "r") as f:
+    config = yaml.safe_load(f)
+    cfg = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE       = os.path.normpath(os.path.join(os.path.dirname(CFG), config["paths"]["base"]))
+MASTER     = os.path.join(BASE, config["paths"]["dictionary_master"])
+DICT       = os.path.join(BASE, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
+DATARAW    = os.path.join(BASE, config["paths"]["data_raw"].format(survey_round=SURVEY_ROUND))
+CORRECTIONS = os.path.join(BASE, config["paths"]["correction_files"].format(survey_round=SURVEY_ROUND))
+DATACLEAN   = os.path.join(BASE, config["paths"]["data_clean"].format(survey_round=SURVEY_ROUND))
+OUTPLOTS = os.path.join(BASE, config["paths"]["outputs_plots"].format(survey_round=SURVEY_ROUND))
+OUTSTATS = os.path.join(BASE, config["paths"]["outputs_stats"].format(survey_round=SURVEY_ROUND))
 
 ROOT               = os.path.join(SCRIPTS_DIR, "..")
 DICT_MASTER        = os.path.join(ROOT, "dictionary", "variables_master.xlsx")

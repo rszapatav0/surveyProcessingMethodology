@@ -1,15 +1,24 @@
 """
 AGEVAL Step 1 - Variable Dictionary Selector
-Standalone run: python -m streamlit run scripts/s01_dictionary_selector.py
+Standalone run: python -m streamlit run baseline/01_code/s01_dictionary_selector.py
 Also imported as a page by the unified scripts/app.py
 """
 
 import streamlit as st
 import pandas as pd
 import os
+import yaml
 
-DICT_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_master.xlsx")
-PERSONALIZED_PATH = os.path.join(os.path.dirname(__file__), "../dictionary/variables_personalized.csv")
+# Read config
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "s00_config.yaml")
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+SURVEY_ROUND = config["project"]["survey_round"]
+
+# Paths
+BASE_PATH = os.path.normpath(os.path.join(os.path.dirname(CONFIG_PATH), config["paths"]["base"]))
+DICT_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_master"])
+PERSONALIZED_PATH = os.path.join(BASE_PATH, config["paths"]["dictionary_personalized"].format(survey_round=SURVEY_ROUND))
 
 # The three pipeline-stage flags a variable can be toggled into. All are
 # simple include/exclude checkboxes edited directly in the table.
