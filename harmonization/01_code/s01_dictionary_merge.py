@@ -17,8 +17,9 @@ Step 1 - Dictionary Selector) into a single harmonization dictionary:
     * `baseline` / `endline` are auto-detected: 1 if the variable is present
       in that round's personalized dictionary (i.e. it was included in that
       round's survey), 0 otherwise. These can be unchecked/overridden here.
-    * `plots`, `grouping_var`, `model_var`, `logarithm` are pre-loaded from
-      the master dictionary's own values and can be edited here.
+    * `plots`, `outcome_var`, `control_var`, `logarithm_var`, `fe_var`,
+      `cluster_var` are pre-loaded from the master dictionary's own values
+      and can be edited here.
     * Only variables present in at least one round (baseline == 1 or
       endline == 1) are kept.
 """
@@ -47,13 +48,17 @@ BASE_COLS = ["topic", "subtopic", "variable_name", "var_type", "label_spanish", 
 # Auto-detected round-membership columns
 ROUND_COLS = ["baseline", "endline"]
 
-# The four harmonization-analysis flags a variable can be toggled into.
+# The harmonization-analysis flags a variable can be toggled into.
 # Pre-loaded from the master dictionary's own values; editable here.
+# (outcome_var/control_var/logarithm_var/fe_var/cluster_var will be used by a
+# future regression-modeling step on the combined baseline+endline data.)
 HARMONIZATION_FLAG_COLS = {
     "plots": "Plots",
-    "grouping_var": "Grouping Variable",
-    "model_var": "Model Variable",
-    "logarithm": "Logarithm",
+    "outcome_var": "Outcome Variable",
+    "control_var": "Control Variable",
+    "logarithm_var": "Logarithm",
+    "fe_var": "Fixed Effects Variable",
+    "cluster_var": "Cluster Variable",
 }
 
 
@@ -116,8 +121,8 @@ def load_round_variables(path):
 
 
 def build_harmonization_dict(master_df, baseline_vars, endline_vars):
-    """Build the harmonization dictionary: 6 base columns from master,
-    auto-detected baseline/endline membership, and the 4 analysis flags
+    """Build the harmonization dictionary: base columns from master,
+    auto-detected baseline/endline membership, and the analysis flags
     pre-loaded from master. Keeps only rows present in at least one round."""
     merged = master_df[BASE_COLS].copy()
     varnames = master_df["variable_name"].astype(str)
@@ -147,7 +152,8 @@ def render(standalone: bool = False):
     st.caption(
         "Combines the master dictionary with the personalized baseline and endline dictionaries. "
         "`baseline`/`endline` are auto-detected from each round's personalized dictionary; "
-        "`plots`, `grouping_var`, `model_var` and `logarithm` are pre-loaded from the master dictionary. "
+        "`plots`, `outcome_var`, `control_var`, `logarithm_var`, `fe_var` and `cluster_var` are "
+        "pre-loaded from the master dictionary. "
         "Uncheck anything you want to exclude, then save the combined harmonization dictionary."
     )
 
@@ -241,8 +247,9 @@ def render(standalone: bool = False):
     st.subheader("Edit harmonization flags")
     st.info(
         "`baseline`/`endline` were auto-detected from each round's personalized dictionary — "
-        "uncheck to exclude a round for that variable. Check `plots`, `grouping_var`, `model_var` "
-        "and `logarithm` to include the variable in that part of the harmonized analysis."
+        "uncheck to exclude a round for that variable. Check `plots`, `outcome_var`, `control_var`, "
+        "`logarithm_var`, `fe_var` and `cluster_var` to include the variable in that part of the "
+        "harmonized analysis."
     )
 
     edited_frames = []
@@ -254,9 +261,11 @@ def render(standalone: bool = False):
         "baseline":        st.column_config.CheckboxColumn("Baseline", default=False),
         "endline":         st.column_config.CheckboxColumn("Endline", default=False),
         "plots":           st.column_config.CheckboxColumn("Plots", default=False),
-        "grouping_var":    st.column_config.CheckboxColumn("Grouping Var", default=False),
-        "model_var":       st.column_config.CheckboxColumn("Model Var", default=False),
-        "logarithm":       st.column_config.CheckboxColumn("Logarithm", default=False),
+        "outcome_var":     st.column_config.CheckboxColumn("Outcome Var", default=False),
+        "control_var":     st.column_config.CheckboxColumn("Control Var", default=False),
+        "logarithm_var":   st.column_config.CheckboxColumn("Logarithm", default=False),
+        "fe_var":          st.column_config.CheckboxColumn("FE Var", default=False),
+        "cluster_var":     st.column_config.CheckboxColumn("Cluster Var", default=False),
     }
 
     for topic in selected_topics:
